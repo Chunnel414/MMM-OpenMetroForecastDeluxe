@@ -1,7 +1,7 @@
-# MMM-AccuWeatherForecastDeluxe
+# MMM-OpenMeteoForecastDeluxe
 
-# >>>>>>>>>>>>> NOTES >>>>>>>>>>>>>
-*It looks like AccuWeather has finally turned off their free accounts and they only have a 14-day trial available without a paid account. This might be the end of the road for this module :(*
+# >>>>>>>>>>>>> UNDER CONSTRUCTION >>>>>>>>>>>>>
+*This is my first attempt to create a module, but I am attempting to replace the accuweather API with open-meteo.  I want to preserve the forecast bars as I believe they are unique to this module.  Please be patient as I don't have much time to work on this*
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 Known bugs:
@@ -10,7 +10,7 @@ Known bugs:
 </ul>
 
 
-This is a [MagicMirror²](https://magicmirror.builders) module that displays current, hourly and daily forecast information using data from the [AccuWeather](https://www.accuweather.com).
+This is a [MagicMirror²](https://magicmirror.builders) module that displays current, hourly and daily forecast information using data from the [Open-Meteo](https://www.open-meteo.com).
 
 | Tiled Layouts | Bars Layout (daily forecast only) |
 | --- | --- |
@@ -19,8 +19,8 @@ This is a [MagicMirror²](https://magicmirror.builders) module that displays cur
 ## Installation
 
 1. Navigate into your MagicMirror's `modules` folder and execute
-   `git clone https://github.com/maxbethge/MMM-AccuWeatherForecastDeluxe`.
-2. Enter the new `MMM-AccuWeatherForecastDeluxe` directory and execute
+   `git clone https://github.com/maxbethge/MMM-OpenMeteoForecastDeluxe`.
+2. Enter the new `MMM-OpenMeteoForecastDeluxe` directory and execute
    `npm install`.
 
 ## Configuration
@@ -31,19 +31,19 @@ At a minimum you need to supply the following required configuration parameters:
 - `locationKey`
 
 You can request an API key to access data here:
-<https://developer.accuweather.com/packages>
+<https://developer.open-meteo.com/packages>
 
-AccuWeather free tier no longer allows 1000 requests per day but instead limits you to 50.
-Free tier is fine -- by itself, a single instance of this module will not make 50 requests in one day with the default `updateInterval` of `120`. However, if the `updateInterval` is more frequent, create another Accuweather account to get a second API key and add to `apiKey2`.
+Open-Meteo free tier no longer allows 1000 requests per day but instead limits you to 50.
+Free tier is fine -- by itself, a single instance of this module will not make 50 requests in one day with the default `updateInterval` of `120`. However, if the `updateInterval` is more frequent, create another Open-Meteo account to get a second API key and add to `apiKey2`.
 
-Find the locationKey using the Accuweather search API
-<http://dataservice.accuweather.com/locations/v1/cities/search?apikey={apiKey}&q={cityName}>
+Find the locationKey using the Open-Meteo search API
+<http://dataservice.Open-Meteo.com/locations/v1/cities/search?apikey={apiKey}&q={cityName}>
 
 ### Sample Configuration
 
 ```JavaScript
 {
-  module: "MMM-AccuWeatherForecastDeluxe",
+  module: "MMM-OpenMeteoForecastDeluxe",
   header: "Tiled Layouts",
   position: "top_right",
   classes: "default everyone",
@@ -84,7 +84,7 @@ You can use the `listenerOnly` option with multiple instances, so that only a pr
   <tbody>
     <tr>
       <td><code>endpoint</code></td>
-      <td>The URL of the accuweather api; a free subscription with a limited quota and can be used with <code>http://dataservice.accuweather.com</code><br><br><strong>Type</strong> <code>String</code><br>Defaults to <code>http://dataservice.accuweather.com</code></td>
+      <td>The URL of the open-meteo api; a free subscription with a limited quota and can be used with <code>http://dataservice.open-meteo.com</code><br><br><strong>Type</strong> <code>String</code><br>Defaults to <code>http://dataservice.open-meteo.com</code></td>
     </tr>
     <tr>
       <td><code>updateInterval</code></td>
@@ -267,7 +267,7 @@ You can use the `listenerOnly` option with multiple instances, so that only a pr
 
 ### Units & Labels
 
-Accuweather supports imperial and metric units. Be aware of the `unit` option above, which defaults to the units set for MagicMirror².
+Open-Meteo supports imperial and metric units. Be aware of the `unit` option above, which defaults to the units set for MagicMirror².
 
 If you want a space before or after the label, include it here.
 
@@ -447,7 +447,7 @@ Options for specifying the decimal precision for various measurements. OpenWeath
 
 ```JavaScript
 {
-  module: "MMM-AccuWeatherForecastDeluxe",
+  module: "MMM-OpenMeteoForecastDeluxe",
   header: "Table Layouts",
   position: "top_right",
   classes: "default everyone",
@@ -476,7 +476,7 @@ Options for specifying the decimal precision for various measurements. OpenWeath
 
 ```JavaScript
 {
-  module: "MMM-AccuWeatherForecastDeluxe",
+  module: "MMM-OpenMeteoForecastDeluxe",
   header: "Bars Layout (daily forecast only)",
   position: "top_right",
   classes: "default everyone",
@@ -508,7 +508,7 @@ Options for specifying the decimal precision for various measurements. OpenWeath
 
 ```JavaScript
 {
-  module: "MMM-AccuWeatherForecastDeluxe",
+  module: "MMM-OpenMeteoForecastDeluxe",
   header: "Bars Layout (colored: false)",
   position: "top_right",
   classes: "default everyone",
@@ -540,7 +540,7 @@ Options for specifying the decimal precision for various measurements. OpenWeath
 
 ```JavaScript
 {
-  module: "MMM-AccuWeatherForecastDeluxe",
+  module: "MMM-OpenMeteoForecastDeluxe",
   header: "Tiled Layouts",
   position: "top_right",
   classes: "default everyone",
@@ -566,16 +566,16 @@ Options for specifying the decimal precision for various measurements. OpenWeath
 This module is set to be 300px wide by default. If you wish to override it, you can add the following to your `custom.css` file:
 
 ```css
-.MMM-AccuWeatherForecastDeluxe .module-content {
+.MMM-OpenMeteoForecastDeluxe .module-content {
   width: 500px; /* adjust this to taste */
 }
 ```
 
-Most important elements of this module have one or more class names applied. Examine the `MMM-AccuWeatherForecastDeluxe.css` or inspect elements directly with your browser of choice to determine what class you would like to override.
+Most important elements of this module have one or more class names applied. Examine the `MMM-OpenMeteoForecastDeluxe.css` or inspect elements directly with your browser of choice to determine what class you would like to override.
 
 ## For Module Developers
 
-This module broadcasts a notification when it recieves a weather update. The notification is `ACCUWEATHER_ONE_CALL_FORECAST_DATA` and the payload contains OpenWeather's JSON weather forecast object. For details on the weather object, see <https://openweathermap.org/api/one-call-api>.
+This module broadcasts a notification when it recieves a weather update. The notification is `OpenMeteo_ONE_CALL_FORECAST_DATA` and the payload contains OpenWeather's JSON weather forecast object. For details on the weather object, see <https://openweathermap.org/api/one-call-api>.
 
 ## Attributions
 
@@ -609,6 +609,6 @@ the original artists.<br />
 Some of the icons were modified to better work with the module's
 structure and aesthetic.
 
-**Weather data provided by AccuWeather**<br />
+**Weather data provided by Open-Meteo**<br />
 <https://www.accuweather.com>
 
