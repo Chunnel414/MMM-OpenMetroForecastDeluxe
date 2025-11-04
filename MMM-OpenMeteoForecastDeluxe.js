@@ -1,8 +1,8 @@
 /*********************************
 
   MagicMirror² Module:
-  MMM-AccuWeatherMapForecast
-  https://github.com/maxbethge/MMM-AccuWeatherMapForecastDeluxe
+  MMM-OpenMeteoForecastDeluxe
+  https://github.com/Chunnel414/MMM-OpenMeteoForecastDeluxe
 
   Icons in use by this module:
 
@@ -44,7 +44,7 @@
 
 *********************************/
 
-Module.register("MMM-AccuWeatherForecastDeluxe", {
+Module.register("MMM-OpenMeteoForecastDeluxe", {
 
     /*
       This module uses the Nunjucks templating system introduced in
@@ -140,7 +140,7 @@ Module.register("MMM-AccuWeatherForecastDeluxe", {
         dp_temp_m: 0,
         dp_wind_i: 0,
         dp_wind_m: 0,
-        moduleTimestampIdPrefix: "ACCUWEATHER_ONE_CALL_TIMESTAMP_",
+        moduleTimestampIdPrefix: "OpenMeteo_ONE_CALL_TIMESTAMP_",
     },
 
     validUnits: ["imperial", "metric", ""],
@@ -152,11 +152,11 @@ Module.register("MMM-AccuWeatherForecastDeluxe", {
     },
 
     getStyles: function() {
-        return ["MMM-AccuWeatherForecastDeluxe.css"];
+        return ["MMM-OpenMeteoForecastDeluxe.css"];
     },
 
     getTemplate: function() {
-        return "MMM-AccuWeatherForecastDeluxe.njk";
+        return "MMM-OpenMeteoForecastDeluxe.njk";
     },
 
     /*
@@ -275,13 +275,13 @@ Module.register("MMM-AccuWeatherForecastDeluxe", {
 
         // Add formatted units value for field selection in node_helper.js; 'imperial' --> 'Imperial', 'metric' --> 'Metric'
         this.config.unitsFormatted = this.config.units.charAt(0).toUpperCase() + this.config.units.slice(1);
-        Log.info("[MMM-AccuWeatherForecastDeluxe] " + "  unitsFormatted: " + this.config.unitsFormatted);
+        Log.info("[MMM-OpenMeteoForecastDeluxe] " + "  unitsFormatted: " + this.config.unitsFormatted);
 
         Log.info("Done starting module: " + this.name);
     },
 
     getData: function() {
-        this.sendSocketNotification("ACCUWEATHER_ONE_CALL_FORECAST_GET", {
+        this.sendSocketNotification("OpenMeteo_ONE_CALL_FORECAST_GET", {
             apikey: this.config.apikey,
             apikey2: this.config.apikey2,
             locationKey: this.config.locationKey,
@@ -301,7 +301,7 @@ Module.register("MMM-AccuWeatherForecastDeluxe", {
 
         if (
             this.config.listenerOnly &&
-            notification === "ACCUWEATHER_ONE_CALL_FORECAST_WEATHER_DATA"
+            notification === "OpenMeteo_ONE_CALL_FORECAST_WEATHER_DATA"
         ) {
             console.log(this.name, 'in notification ===', notification, payload, sender);
 
@@ -334,7 +334,7 @@ Module.register("MMM-AccuWeatherForecastDeluxe", {
     socketNotificationReceived: function(notification, payload) {
         //console.log(this.name, 'socketNotificationReceived', notification, payload);
 
-        if (notification === "ACCUWEATHER_ONE_CALL_FORECAST_DATA" && payload.instanceId === this.identifier) {
+        if (notification === "OpenMeteo_ONE_CALL_FORECAST_DATA" && payload.instanceId === this.identifier) {
             console.log(this.name, 'in notification ===', notification, payload);
 
             //clear animated icon cache
@@ -350,8 +350,8 @@ Module.register("MMM-AccuWeatherForecastDeluxe", {
             this.updateDom(this.config.updateFadeSpeed);
 
             //broadcast weather update
-            // this.sendNotification("ACCUWEATHER_ONE_CALL_FORECAST_WEATHER_UPDATE", payload);
-            this.sendNotification("ACCUWEATHER_ONE_CALL_FORECAST_WEATHER_DATA", payload);
+            // this.sendNotification("OpenMeteo_ONE_CALL_FORECAST_WEATHER_UPDATE", payload);
+            this.sendNotification("OpenMeteo_ONE_CALL_FORECAST_WEATHER_DATA", payload);
 
             /*
               Start icon playback. We need to wait until the DOM update
@@ -432,7 +432,7 @@ Module.register("MMM-AccuWeatherForecastDeluxe", {
             }
 
         }
-        console.log("[MMM-AccuWeatherForecastDeluxe] " + moment().format("D-MMM-YY HH:mm") + "  unitsFormatted: " + this.config.unitsFormatted );
+        console.log("[MMM-OpenMeteoForecastDeluxe] " + moment().format("D-MMM-YY HH:mm") + "  unitsFormatted: " + this.config.unitsFormatted );
 
         return {
             "currently": {
@@ -622,7 +622,7 @@ Module.register("MMM-AccuWeatherForecastDeluxe", {
     },
 
     /*
-      Returns the units in use for the data pull from AccuWeather
+      Returns the units in use for the data pull from OpenMeteo
      */
     getUnit: function(metric, value) {
 
@@ -653,7 +653,7 @@ Module.register("MMM-AccuWeatherForecastDeluxe", {
 
     /*
       Icon sets can be added here.  The path is relative to
-      MagicMirror/modules/MMM-AccuWeatherMapForecastDeluxe/icons, and the format
+      MagicMirror/modules/MMM-OpenMeteoForecastDeluxe/icons, and the format
       is specified here so that you can use icons in any format
       that works for you.
 
@@ -704,7 +704,7 @@ Module.register("MMM-AccuWeatherForecastDeluxe", {
     },
 
     /*
-      This converts AccuWeather icon id to icon names
+      This converts OpenMeteo icon id to icon names
       https://developer.accuweather.com/weather-icons
     */
     convertAccuWeatherIdToIcon: function(id, accuweather_icon) {
