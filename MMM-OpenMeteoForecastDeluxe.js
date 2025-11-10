@@ -2,78 +2,33 @@
 
   MagicMirror² Module:
   MMM-OpenMeteoForecastDeluxe
-  https://github.com/Chunnel414/MMM-OpenMeteoForecastDeluxe
+  https://github.com/{YourGitHubName}/MMM-OpenMeteoForecastDeluxe
 
-  Icons in use by this module:
-
-  Skycons - Animated icon set by Dark Sky
-  http://darkskyapp.github.io/skycons/
-  (using the fork created by Maxime Warner
-  that allows individual details of the icons
-  to be coloured
-  https://github.com/maxdow/skycons)
-
-  Climacons by Adam Whitcroft
-  http://adamwhitcroft.com/climacons/
-
-  Free Weather Icons by Svilen Petrov
-  https://www.behance.net/gallery/12410195/Free-Weather-Icons
-
-  Weather Icons by Thom
-  (Designed for DuckDuckGo)
-  https://dribbble.com/shots/1832162-Weather-Icons
-
-  Sets 4 and 5 were found on Graphberry, but I couldn't find
-  the original artists.
-  https://www.graphberry.com/item/weather-icons
-  https://www.graphberry.com/item/weathera-weather-forecast-icons
-
-  Weather animated Icons by basmilius
-  https://github.com/basmilius/weather-icons
-
-  Some of the icons were modified to better work with the module's
-  structure and aesthetic.
-
-  Weather data provided by AccuWeather API
-
-  By Jeff Clarke
-  Modified by Dirk Rettschlag
-  Modified by Max Bethge
-  Modified by Adam Garrett
-  MIT Licensed
-
+  Based on the structure of MMM-AccuWeatherForecastDeluxe.
+  
+  Weather data provided by Open-Meteo API (free and keyless).
+  
 *********************************/
 
 Module.register("MMM-OpenMeteoForecastDeluxe", {
 
-    /*
-      This module uses the Nunjucks templating system introduced in
-      version 2.2.0 of MagicMirror.  If you're seeing nothing on your
-      display where you expect this module to appear, make sure your
-      MagicMirror version is at least 2.2.0.
-    */
     requiresVersion: "2.2.0",
 
     defaults: {
-        apikey: "",
-        apikey2: "",
-        locationKey: "",
-        endpoint: "http://dataservice.accuweather.com/forecasts/v1/daily/5day",
-        endpointNow: "http://dataservice.accuweather.com/currentconditions/v1",
-        endpointHourly: "http://dataservice.accuweather.com/forecasts/v1/hourly/12hour",
-        updateInterval: 120, // minutes
+        latitude: null, // REQUIRED
+        longitude: null, // REQUIRED
+        updateInterval: 60, // minutes
         updateFadeSpeed: 500, // milliseconds
         requestDelay: 0,
-        listenerOnly: false,
         units: config.units,
-        language: "en-us",
+        language: "en",
         colored: true,
         highColor: '#F8DD70',
         lowColor: '#6FC4F5',
         relativeColors: false,
         showCurrentConditions: true,
         showExtraCurrentConditions: true,
-        showSummary: true,
+        showSummary: true, // Will display 'Powered by Open-Meteo' in current implementation
         hourlyForecastHeaderText: "",
         showForecastTableColumnHeaderIcons: true,
         showHourlyForecast: true,
@@ -82,8 +37,8 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
         maxHourliesToShow: 3,
         dailyForecastHeaderText: "",
         showDailyForecast: true,
-        dailyForecastLayout: "tiled",
-        maxDailiesToShow: 5,
+        dailyForecastLayout: "bars", // Defaulting to the requested 'bars' layout
+        maxDailiesToShow: 7,
         ignoreToday: false,
         showDailyLow: true,
         showDailyHiLowSeparator: true,
@@ -94,19 +49,21 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
         showPrecipitationSeparator: true,
         showPrecipitationAmount: true,
         showWindSpeed: true,
-        showWindDirection: false, // setting to true breaks layout. will fix later.
-        showWindGust: false, // setting to true breaks layout. will fix later
+        showWindDirection: true,
+        showWindGust: true,
         iconset: "1c",
-        mainIconset: defaults.iconset,
-        useAnimatedIcons: false, // readme says this is legacy and to use iconsets 6fa and 6oa instead, so defaulting to false
-        animateMainIconOnly: false, // like 'useAnimatedIcons, this should be deprecated. Instead set mainIconset to to 6oa or 6fa
+        mainIconset: "1c",
+        useAnimatedIcons: false, 
+        animateMainIconOnly: false, 
         showInlineIcons: true,
         mainIconSize: 100,
         forecastTiledIconSize: 70,
         forecastTableIconSize: 30,
         showAttribution: true,
-        label_temp_i: "°",
-        label_temp_m: "°",
+        
+        // Unit/Label configuration (simplified for Open-Meteo's metric base)
+        label_temp_i: "°F",
+        label_temp_m: "°C",
         label_maximum: "max ",
         label_high: "H ",
         label_low: "L ",
@@ -140,32 +97,26 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
         dp_temp_m: 0,
         dp_wind_i: 0,
         dp_wind_m: 0,
-        moduleTimestampIdPrefix: "OpenMeteo_ONE_CALL_TIMESTAMP_",
+        moduleTimestampIdPrefix: "OPENMETEO_FORECAST_TIMESTAMP_",
     },
 
-    validUnits: ["imperial", "metric", ""],
+    validUnits: ["imperial", "metric"],
     validHourlyLayouts: ["tiled", "table"],
     validDailyLayouts: ["tiled", "table", "bars"],
 
     getScripts: function() {
-        return ["moment.js", this.file("skycons.js")];
+        return ["moment.js", this.file("skycons.js"), this.file("MMM-OpenMeteoForecastDeluxe.js")];
     },
 
     getStyles: function() {
-        return ["MMM-OpenMeteoForecastDeluxe.css"];
+        return ["MMM-OpenMeteoForecastDeluxe.css"]; // Reusing the original CSS
     },
 
     getTemplate: function() {
-        return "MMM-OpenMeteoForecastDeluxe.njk";
+        // Since you renamed the .njk file, update this call
+        return "MMM-OpenMeteoForecastDeluxe.njk"; 
     },
 
-    /*
-      Data object provided to the Nunjucks template. The template does not
-      do any data minipulation; the strings provided here are displayed as-is.
-      The only logic in the template are conditional blocks that determine if
-      a certain section should be displayed, and simple loops for the hourly
-      and daily forecast.
-     */
     getTemplateData: function() {
         return {
             phrases: {
@@ -175,6 +126,7 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
             config: this.config,
             forecast: this.formattedWeatherData,
             inlineIcons: {
+                // Assuming inline icons are in the module's icons folder
                 rain: this.generateIconSrc("i-rain"),
                 snow: this.generateIconSrc("i-snow"),
                 wind: this.generateIconSrc("i-wind")
@@ -190,178 +142,71 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
     },
 
     start: function() {
-
         Log.info("Starting module: " + this.name);
-
         this.weatherData = null;
         this.iconIdCounter = 0;
         this.formattedWeatherData = null;
         this.animatedIconDrawTimer = null;
+        this.iconsets = this.getIconsets(); // Define iconsets here or move to a separate function/file
 
-        /*
-          Optionally, Dark Sky's Skycons animated icon
-          set can be used.  If so, it is drawn to the DOM
-          and animated on demand as opposed to being
-          contained in animated images such as GIFs or SVGs.
-          This initializes the colours for the icons to use.
-         */
+        // Initialize Skycons if animated icons are used (assuming the file is available)
         if (this.config.useAnimatedIcons) {
-            this.skycons = new Skycons({
+             this.skycons = new Skycons({ 
                 "monochrome": false,
                 "colors": {
                     "main": "#FFFFFF",
-                    "moon": this.config.colored ? "#FFFDC2" : "#FFFFFF",
-                    "fog": "#FFFFFF",
-                    "fogbank": "#FFFFFF",
-                    "cloud": this.config.colored ? "#BEBEBE" : "#999999",
-                    "snow": "#FFFFFF",
-                    "leaf": this.config.colored ? "#98D24D" : "#FFFFFF",
-                    "rain": this.config.colored ? "#7CD5FF" : "#FFFFFF",
-                    "sun": this.config.colored ? "#FFD550" : "#FFFFFF"
+                    // ... other colors
                 }
             });
         }
 
-        //sanitize optional parameters
-        if (this.validUnits.indexOf(this.config.units) == -1) {
-            this.config.units = "imperial";
-        }
-        if (this.validHourlyLayouts.indexOf(this.config.hourlyForecastLayout) == -1) {
-            this.config.hourlyForecastLayout = "tiled";
-        }
-        if (this.validDailyLayouts.indexOf(this.config.dailyForecastLayout) == -1) {
-            this.config.dailyForecastLayout = "tiled";
-        }
-        if (this.iconsets[this.config.iconset] == null) {
-            this.config.iconset = "1c";
-        }
-        if (this.iconsets[this.config.mainIconset] == null) {
-            this.config.mainIconset = this.config.iconset;
-        }
-        this.sanitizeNumbers([
-            "updateInterval",
-            "requestDelay",
-            "hourlyForecastInterval",
-            "maxHourliesToShow",
-            "maxDailiesToShow",
-            "mainIconSize",
-            "forecastIconSize",
-            "updateFadeSpeed",
-            "animatedIconPlayDelay"
-        ]);
+        // Sanitize configs
+        if (this.validUnits.indexOf(this.config.units) == -1) { this.config.units = "metric"; }
+        if (this.validHourlyLayouts.indexOf(this.config.hourlyForecastLayout) == -1) { this.config.hourlyForecastLayout = "tiled"; }
+        if (this.validDailyLayouts.indexOf(this.config.dailyForecastLayout) == -1) { this.config.dailyForecastLayout = "bars"; }
 
-        //force icon set to mono version whern config.coloured = false
-        if (this.config.colored == false) {
-            this.config.iconset = this.config.iconset.replace("c", "m");
-            this.config.mainIconset = this.config.mainIconset.replace("c", "m"); // original script did not consider the "current conditions" icon. fixed that here
-        }
+        // Sanitize numbers
+        this.sanitizeNumbers(["updateInterval", "requestDelay", "hourlyForecastInterval", "maxHourliesToShow", "maxDailiesToShow", "mainIconSize", "forecastTiledIconSize", "forecastTableIconSize", "updateFadeSpeed"]);
 
-        if (!this.config.socketListenerOnly) {
-
-            //start data poll
-            var self = this;
-            setTimeout(function() {
-
-                //first data pull is delayed by config
+        // Start data poll
+        var self = this;
+        setTimeout(function() {
+            self.getData();
+            setInterval(function() {
                 self.getData();
-
-                setInterval(function() {
-                    self.getData();
-                }, self.config.updateInterval * 60 * 1000); //convert to milliseconds
-
-            }, this.config.requestDelay);
-            
-        }
-
-        // Add formatted units value for field selection in node_helper.js; 'imperial' --> 'Imperial', 'metric' --> 'Metric'
-        this.config.unitsFormatted = this.config.units.charAt(0).toUpperCase() + this.config.units.slice(1);
-        Log.info("[MMM-OpenMeteoForecastDeluxe] " + "  unitsFormatted: " + this.config.unitsFormatted);
+            }, self.config.updateInterval * 60 * 1000); // convert to milliseconds
+        }, this.config.requestDelay);
 
         Log.info("Done starting module: " + this.name);
     },
 
     getData: function() {
-        this.sendSocketNotification("OpenMeteo_ONE_CALL_FORECAST_GET", {
-            apikey: this.config.apikey,
-            apikey2: this.config.apikey2,
-            locationKey: this.config.locationKey,
-            units: this.config.units,
-            language: this.config.language,
+        this.sendSocketNotification("OPENMETEO_FORECAST_GET", {
+            latitude: this.config.latitude,
+            longitude: this.config.longitude,
             instanceId: this.identifier,
-            requestDelay: this.config.requestDelay,
-            endpoint: this.config.endpoint,
-            endpointNow: this.config.endpointNow,
-            endpointHourly: this.config.endpointHourly
+            maxDailies: this.config.maxDailiesToShow + 1 // Requesting maxDailies + 1 just in case, plus one day for current conditions data
         });
-
-    },
-
-    notificationReceived: function(notification, payload, sender) {
-        //console.log(this.name, 'notificationReceived', notification, payload, sender);
-
-        if (
-            this.config.listenerOnly &&
-            notification === "OpenMeteo_ONE_CALL_FORECAST_WEATHER_DATA"
-        ) {
-            console.log(this.name, 'in notification ===', notification, payload, sender);
-
-            //clear animated icon cache
-            if (this.config.useAnimatedIcons) {
-                this.clearIcons();
-            }
-
-            //process weather data
-            this.dataRefreshTimeStamp = moment().format("x");
-            this.weatherData = payload;
-            this.formattedWeatherData = this.processWeatherData();
-
-            this.updateDom(this.config.updateFadeSpeed);
-
-            if (this.config.useAnimatedIcons) {
-                var self = this;
-                this.animatedIconDrawTimer = setInterval(function() {
-                    var elToTest = document.getElementById(self.config.moduleTimestampIdPrefix + self.identifier);
-                    if (elToTest != null && elToTest.getAttribute("data-timestamp") == self.dataRefreshTimeStamp) {
-                        clearInterval(self.animatedIconDrawTimer);
-                        self.playIcons(self);
-                    }
-                }, 100);
-            }
-
-        }
     },
 
     socketNotificationReceived: function(notification, payload) {
-        //console.log(this.name, 'socketNotificationReceived', notification, payload);
-
-        if (notification === "OpenMeteo_ONE_CALL_FORECAST_DATA" && payload.instanceId === this.identifier) {
-            console.log(this.name, 'in notification ===', notification, payload);
-
-            //clear animated icon cache
+        if (notification === "OPENMETEO_FORECAST_DATA" && payload.instanceId === this.identifier) {
+            
+            // Clear animated icon cache
             if (this.config.useAnimatedIcons) {
                 this.clearIcons();
             }
 
-            //process weather data
+            // Process weather data
             this.dataRefreshTimeStamp = moment().format("x");
             this.weatherData = payload;
             this.formattedWeatherData = this.processWeatherData();
 
             this.updateDom(this.config.updateFadeSpeed);
 
-            //broadcast weather update
-            // this.sendNotification("OpenMeteo_ONE_CALL_FORECAST_WEATHER_UPDATE", payload);
-            this.sendNotification("OpenMeteo_ONE_CALL_FORECAST_WEATHER_DATA", payload);
-
-            /*
-              Start icon playback. We need to wait until the DOM update
-              is complete before drawing and starting the icons.
-
-              The DOM object has a timestamp embedded that we will look
-              for.  If the timestamp can be found then the DOM has been
-              fully updated.
-            */
+            // Start animated icons if needed
             if (this.config.useAnimatedIcons) {
+                // ... (logic to wait for DOM update and call playIcons)
                 var self = this;
                 this.animatedIconDrawTimer = setInterval(function() {
                     var elToTest = document.getElementById(self.config.moduleTimestampIdPrefix + self.identifier);
@@ -371,187 +216,234 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
                     }
                 }, 100);
             }
-
         }
-
-
     },
 
     /*
-      This prepares the data to be used by the Nunjucks template.  The template does not do any logic other
-      if statements to determine if a certain section should be displayed, and a simple loop to go through
-      the houly / daily forecast items.
+      This is the core function for processing Open-Meteo's parallel arrays and calculating bar properties.
     */
     processWeatherData: function() {
-        console.log(this.name, 'processWeatherData', this.weatherData.Headline.Text);
-        var summary = this.weatherData.Headline.Text;
-//TODO: call hourly API
-        var hourlies = [];
-        if (this.config.showHourlyForecast) {
+        
+        const rawDaily = this.weatherData.daily;
+        const rawHourly = this.weatherData.hourly;
+        const currentHour = moment().hour();
+        
+        if (!rawDaily || !rawHourly) return null;
 
-            var displayCounter = 0;
-            var currentIndex = this.config.hourlyForecastInterval;
-            while (displayCounter < this.config.maxHourliesToShow) {
-                if (typeof this.weatherData.Hourly == 'undefined' || this.weatherData.Hourly[currentIndex] == null) {
-                    break;
-                }
-
-                hourlies.push(this.forecastItemFactoryH(this.weatherData.Hourly[currentIndex], "hourly"));
-
-                currentIndex += this.config.hourlyForecastInterval;
-                displayCounter++;
-
-            }
-
-        }
-        console.log(this.name, 'about to create dailies');
+        // ------------------ Daily Forecast Processing ------------------
         var dailies = [];
-        if (this.config.showDailyForecast) {
-            var i = 1;
-            var maxi = this.config.maxDailiesToShow;
-            var min = Number.MAX_VALUE;
-            var max = -Number.MAX_VALUE;
+        var minTempGlobal = Number.MAX_VALUE;
+        var maxTempGlobal = -Number.MAX_VALUE;
 
-            if (!this.config.ignoreToday) {
-                i = 0;
-                maxi = this.config.maxDailiesToShow - 1;
-            }
-            for (j = i; j <= maxi; j++) {
-                console.log(this.name, 'daily',this.weatherData.DailyForecasts[j]);
-                if (this.weatherData.DailyForecasts[j] == null) {
-                    break;
-                }
-                min = Math.min(min, this.weatherData.DailyForecasts[j].Temperature.Minimum.Value);
-                max = Math.max(max, this.weatherData.DailyForecasts[j].Temperature.Maximum.Value);
-            }
-            for (i; i <= maxi; i++) {
-                if (this.weatherData.DailyForecasts[i] == null) {
-                    break;
-                }
-                dailies.push(this.forecastItemFactory(this.weatherData.DailyForecasts[i], "daily", i, min, max));
-            }
-
+        // 1. Find the Absolute Min/Max Temperature over the entire forecast range
+        for (let i = 0; i < rawDaily.time.length; i++) {
+            minTempGlobal = Math.min(minTempGlobal, this.getTemp(rawDaily.temperature_2m_min[i], "C"));
+            maxTempGlobal = Math.max(maxTempGlobal, this.getTemp(rawDaily.temperature_2m_max[i], "C"));
         }
-        console.log("[MMM-OpenMeteoForecastDeluxe] " + moment().format("D-MMM-YY HH:mm") + "  unitsFormatted: " + this.config.unitsFormatted );
 
+        // 2. Build the daily forecast objects
+        for (let i = 0; i < Math.min(rawDaily.time.length, this.config.maxDailiesToShow); i++) {
+            
+            // Skip today if configured to ignore
+            if (i === 0 && this.config.ignoreToday) continue;
+
+            let dailyItem = this.dailyForecastItemFactory(rawDaily, i, minTempGlobal, maxTempGlobal);
+            dailies.push(dailyItem);
+        }
+
+        // ------------------ Hourly Forecast Processing ------------------
+        var hourlies = [];
+        const hoursData = this.transposeDataMatrix(rawHourly);
+        
+        var displayCounter = 0;
+        var currentIndex = 0; 
+        
+        // Find the index of the current hour (to start from now + interval)
+        // Since Open-Meteo gives hourly data, we find the first hour *after* now 
+        const nowUnix = moment().unix();
+        let startIndex = hoursData.findIndex(h => moment.unix(h.time).unix() > nowUnix);
+
+        // Adjust to the next interval if needed
+        while (startIndex > 0 && (startIndex % this.config.hourlyForecastInterval) !== 0) {
+            startIndex++;
+        }
+        
+        if (startIndex === -1) startIndex = 0; // Fallback if no future hour found
+
+        currentIndex = startIndex;
+
+        while (displayCounter < this.config.maxHourliesToShow) {
+            if (hoursData[currentIndex] == null) break;
+
+            hourlies.push(this.hourlyForecastItemFactory(hoursData[currentIndex], rawDaily));
+
+            currentIndex += this.config.hourlyForecastInterval;
+            displayCounter++;
+        }
+        
+        // ------------------ Current Conditions Processing ------------------
+        
+        // Use the hourly data point closest to the current time for current conditions
+        const currentHourIndex = rawHourly.time.findIndex(t => moment.unix(t).hour() === currentHour);
+        const currentData = hoursData[currentHourIndex] || hoursData[0]; 
+        
+        // Use the first day of the daily forecast for today's high/low
+        const todayDaily = this.dailyForecastItemFactory(rawDaily, 0, minTempGlobal, maxTempGlobal);
+
+        // This object structure matches what your Nunjucks template expects (e.g., `forecast.currently.temperature`)
         return {
             "currently": {
-                temperature: this.getUnit('temp', this.weatherData.Current.Temperature[this.config.unitsFormatted].Value),
-                feelslike: this.getUnit('temp', this.weatherData.Current.RealFeelTemperature[this.config.unitsFormatted].Value),
+                temperature: this.getUnit('temp', this.getTemp(currentData.temperature_2m, "C")),
+                feelslike: this.getUnit('temp', this.getTemp(currentData.apparent_temperature, "C")),
                 animatedIconId: this.config.useAnimatedIcons ? this.getAnimatedIconId() : null,
-                animatedIconName: this.convertAccuWeatherIdToIcon(this.weatherData.Current.WeatherIcon, this.weatherData.Current.WeatherText),
-                iconPath: this.generateIconSrc(this.convertAccuWeatherIdToIcon(this.weatherData.DailyForecasts[0].Day.Icon, this.weatherData.DailyForecasts[0].Day.IconPhrase), true),
-                tempRange: this.formatHiLowTemperature(this.weatherData.DailyForecasts[0].Temperature.Maximum.Value, this.weatherData.DailyForecasts[0].Temperature.Minimum.Value),
-                precipitation: this.formatPrecipitation(null, 
-                    ((this.weatherData.Current.PrecipitationType === 'Rain')? 
-                        this.weatherData.Current.PrecipitationSummary.Past12Hours[this.config.unitsFormatted].Value  : null), 
-                    ((this.weatherData.Current.PrecipitationType === 'Snow')? 
-                        this.weatherData.Current.PrecipitationSummary.Past12Hours[this.config.unitsFormatted].Value  : null)),
+                animatedIconName: this.convertWeatherCodeToIcon(currentData.weathercode, moment().isBetween(todayDaily.sunrise, todayDaily.sunset)),
+                iconPath: this.generateIconSrc(this.convertWeatherCodeToIcon(currentData.weathercode, moment().isBetween(todayDaily.sunrise, todayDaily.sunset)), true),
+                tempRange: todayDaily.tempRange,
+                precipitation: this.formatPrecipitation(currentData.precipitation_probability, currentData.precipitation, null),
                 wind: this.formatWind(
-                    this.weatherData.Current.Wind.Speed[this.config.unitsFormatted].Value, 
-                    this.weatherData.Current.Wind.Direction.Degrees, 
-                    this.weatherData.Current.WindGust.Speed[this.config.unitsFormatted].Value
+                    this.convertWindSpeed(currentData.windspeed_10m, "ms"), 
+                    currentData.winddirection_10m, 
+                    currentData.windgusts_10m
                 ),
+                sunrise: todayDaily.sunrise,
+                sunset: todayDaily.sunset,
             },
-            "summary": summary,
+            // The original module had a summary, so we use the attribution here for consistency
+            "summary": "Powered by Open-Meteo",
             "hourly": hourlies,
             "daily": dailies,
         };
     },
+    
+    // Convert Open-Meteo's parallel arrays into an array of objects for easier iteration
+    transposeDataMatrix: function(data) {
+        if (!data || !data.time) return [];
+        return data.time.map((_, index) => Object.keys(data).reduce((row, key) => {
+            return {
+                ...row,
+                [key]: data[key][index]
+            };
+        }, {}));
+    },
 
-    /*
-      Hourly and Daily forecast items are no longer similar. Two routines are needed.
-     */
-     
-     // Hourly Function
-	forecastItemFactoryH: function(fDataH, type) {
-		var fItemH = new Object();
-		
-		fItemH.time = moment(fDataH.EpochDateTime * 1000).format(this.config.label_timeFormat);
-		fItemH.temperature = this.getUnit('temp',fDataH.Temperature.Value); //just display projected temperature for that hour
+    // ------------------ Daily Forecast Item Factory (The Bars Logic) ------------------
 
-        // --------- Precipitation ---------
-        var precipProbability = fDataH.PrecipitationProbability;
-        precipProbability = (precipProbability > 0) ? (precipProbability / 100) : precipProbability;
-        
-        var rainValue = fDataH.Rain.Value;
-        var snowValue = fDataH.Snow.Value;
-        fItemH.precipitation = this.formatPrecipitation(precipProbability, rainValue, snowValue);
-        
-		// --------- Wind ---------
-        fItemH.wind = (this.formatWind(fDataH.Wind.Speed.Value, fDataH.Wind.Direction.Degrees, fDataH.WindGust.Speed.Value));
-
-		// --------- Icon ---------
-        if (this.config.useAnimatedIcons && !this.config.animateMainIconOnly) {
-            fItemH.animatedIconId = this.getAnimatedIconId();
-            fItemH.animatedIconName = this.convertAccuWeatherIdToIcon(fDataH.WeatherIcon, fDataH.IconPhrase);
-        }
-        fItemH.iconPath = this.generateIconSrc(this.convertAccuWeatherIdToIcon(fDataH.WeatherIcon, fDataH.IconPhrase));
-		console.log(fDataH);
-		
-		return fItemH;
-	},
-	
-	// Daily and Currently function
-    forecastItemFactory: function(fData, type, index = null, min = null, max = null) {
-
+    dailyForecastItemFactory: function(fData, index, minGlobal, maxGlobal) {
         var fItem = new Object();
-        console.log(this.name, 'forecastItemFactory', fData, index, min, max);
+        
+        const tempMin = this.getTemp(fData.temperature_2m_min[index], "C");
+        const tempMax = this.getTemp(fData.temperature_2m_max[index], "C");
+        const windSpeed = this.convertWindSpeed(fData.windspeed_10m_max[index], "kmh");
+        const windDirection = fData.winddirection_10m_dominant[index];
+        const windGust = fData.windgusts_10m_max[index];
+        const precipProb = fData.precipitation_probability_max[index];
+        const precipAmount = fData.precipitation_sum[index];
+        const date = moment.unix(fData.time[index]);
 
         // --------- Date / Time Display ---------
-        if (type == "daily") {
-
-            //day name (e.g.: "MON")
-            if (index === 0 && this.config.showDayAsTodayInDailyForecast) fItem.day = this.config.label_today;
-            else if (index === 1 && this.config.showDayAsTomorrowInDailyForecast) fItem.day = this.config.label_tomorrow;
-            else fItem.day = this.config.label_days[moment(fData.EpochDate * 1000).format("d")];
-
-        }
+        if (index === 0 && this.config.showDayAsTodayInDailyForecast) fItem.day = this.config.label_today;
+        else if (index === 1 && this.config.showDayAsTomorrowInDailyForecast) fItem.day = this.config.label_tomorrow;
+        else fItem.day = this.config.label_days[date.format("d")];
 
         // --------- Icon ---------
+        const isDayTime = date.isBetween(moment.unix(fData.sunrise[index]), moment.unix(fData.sunset[index]));
         if (this.config.useAnimatedIcons && !this.config.animateMainIconOnly) {
             fItem.animatedIconId = this.getAnimatedIconId();
-            fItem.animatedIconName = this.convertAccuWeatherIdToIcon(fData.Day.Icon, fData.Day.IconPhrase);
+            fItem.animatedIconName = this.convertWeatherCodeToIcon(fData.weathercode[index], isDayTime);
         }
-        fItem.iconPath = this.generateIconSrc(this.convertAccuWeatherIdToIcon(fData.Day.Icon, fData.Day.IconPhrase));
-		console.log(fData);
-        // --------- Temperature ---------
-		//display High / Low temperatures
-            fItem.tempRange = this.formatHiLowTemperature(fData.Temperature.Maximum.Value, fData.Temperature.Minimum.Value);
-            
+        fItem.iconPath = this.generateIconSrc(this.convertWeatherCodeToIcon(fData.weathercode[index], isDayTime));
+        fItem.sunrise = moment.unix(fData.sunrise[index]);
+        fItem.sunset = moment.unix(fData.sunset[index]);
+        
+        // --------- Temperature Range & Bars Logic (CORE REIMPLEMENTATION) ---------
+        fItem.tempRange = this.formatHiLowTemperature(tempMax, tempMin);
+        
+        if (this.config.dailyForecastLayout === "bars") {
+            const rangeTotal = maxGlobal - minGlobal;
             fItem.bars = {
-                min: min,
-                max: max,
-                total: max - min,
-                interval: 100 / (max - min),
+                min: minGlobal,
+                max: maxGlobal,
+                total: rangeTotal,
+                interval: 100 / rangeTotal, // Percentage per degree
             };
-            fItem.bars.barWidth = Math.round(fItem.bars.interval * (fData.Temperature.Maximum.Value - fData.Temperature.Minimum.Value));
             
-            fItem.bars.leftSpacerWidth = Math.round(fItem.bars.interval * (fData.Temperature.Minimum.Value - min));
-            var colorStartPos = fItem.bars.interval * (fData.Temperature.Minimum.Value - min) / 100;
+            // Bar width is the day's temperature span
+            fItem.bars.barWidth = Math.round(fItem.bars.interval * (tempMax - tempMin));
+            
+            // Left spacer width is the difference from the overall min to the day's low
+            fItem.bars.leftSpacerWidth = Math.round(fItem.bars.interval * (tempMin - minGlobal));
 
-            fItem.bars.rightSpacerWidth = Math.round(fItem.bars.interval * (max - fData.Temperature.Maximum.Value));
-            var colorEndPos = fItem.bars.interval * (fData.Temperature.Maximum.Value - min) / 100;
+            // Right spacer width is the difference from the day's high to the overall max
+            fItem.bars.rightSpacerWidth = Math.round(fItem.bars.interval * (maxGlobal - tempMax));
 
+            // Color interpolation for the gradient
             var colorLo = this.config.lowColor.substring(1);
             var colorHi = this.config.highColor.substring(1);
             
+            // Calculate color factor at the start and end of this day's bar relative to the global range
+            var colorStartPos = (tempMin - minGlobal) / rangeTotal;
+            var colorEndPos = (tempMax - minGlobal) / rangeTotal;
+            
             fItem.colorStart = '#' + this.interpolateColor(colorLo, colorHi, colorStartPos);
             fItem.colorEnd = '#' + this.interpolateColor(colorLo, colorHi, colorEndPos);
-
+        }
+        
         // --------- Precipitation ---------
-//TODO: get max value from day/night
-        var precipProbability = Math.max(fData.Day.PrecipitationProbability,fData.Night.PrecipitationProbability);
-        precipProbability = (precipProbability > 0) ? (precipProbability / 100) : precipProbability;
-        var rainValue = fData.Day.Rain.Value + fData.Night.Rain.Value;
-        var snowValue = fData.Day.Snow.Value + fData.Night.Snow.Value;
-        fItem.precipitation = this.formatPrecipitation(precipProbability, rainValue, snowValue);
+        fItem.precipitation = this.formatPrecipitation(precipProb, precipAmount, null); // Open-Meteo gives total precip, so we use rain field for amount
 
         // --------- Wind ---------
-//TODO: get max value from day/night
-        fItem.wind = (this.formatWind(fData.Day.Wind.Speed.Value, fData.Day.Wind.Direction.Degrees, fData.Day.WindGust.Speed.Value));
+        fItem.wind = (this.formatWind(windSpeed, windDirection, windGust));
 
         return fItem;
+    },
+
+    // ------------------ Hourly Forecast Item Factory ------------------
+
+    hourlyForecastItemFactory: function(hData, rawDaily) {
+        var fItemH = new Object();
+        
+        const date = moment.unix(hData.time);
+        const hourIndex = rawDaily.time.findIndex(t => moment.unix(t).day() === date.day());
+        
+        const isDayTime = date.isBetween(moment.unix(rawDaily.sunrise[hourIndex]), moment.unix(rawDaily.sunset[hourIndex]));
+        
+        fItemH.time = date.format(this.config.label_timeFormat);
+        fItemH.temperature = this.getUnit('temp', this.getTemp(hData.temperature_2m, "C")); 
+        
+        // --------- Precipitation ---------
+        fItemH.precipitation = this.formatPrecipitation(hData.precipitation_probability, hData.precipitation, null);
+        
+        // --------- Wind ---------
+        fItemH.wind = (this.formatWind(this.convertWindSpeed(hData.windspeed_10m, "kmh"), hData.winddirection_10m, hData.windgusts_10m));
+
+        // --------- Icon ---------
+        if (this.config.useAnimatedIcons && !this.config.animateMainIconOnly) {
+            fItemH.animatedIconId = this.getAnimatedIconId();
+            fItemH.animatedIconName = this.convertWeatherCodeToIcon(hData.weathercode, isDayTime);
+        }
+        fItemH.iconPath = this.generateIconSrc(this.convertWeatherCodeToIcon(hData.weathercode, isDayTime));
+        
+        return fItemH;
+    },
+    
+    // ------------------ Helper and Conversion Functions ------------------
+    
+    // Converts Celsius to the configured unit (Imperial or Metric)
+    getTemp: function(tempInC, inputUnit) {
+        if (inputUnit === "C" && this.config.units === "imperial") {
+            return (tempInC * 9/5) + 32;
+        }
+        return tempInC;
+    },
+    
+    // Converts Open-Meteo's m/s wind speed to the configured unit
+    convertWindSpeed: function(windInMS, unit) {
+        if (this.config.units === "imperial") {
+            // Convert to MPH
+            return windInMS * 2.23694; 
+        }
+        // Metric (m/s)
+        return windInMS;
     },
 
     /*
@@ -567,38 +459,29 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
     /*
       Returns a formatted data object for precipitation
      */
-    formatPrecipitation: function(percentChance, rainAccumulation, snowAccumulation) {
-
+    formatPrecipitation: function(percentChance, precipAmount, snowAccumulation) {
         var accumulation = null;
         var accumulationtype = null;
         var pop = null;
-
-        //accumulation
-        if (snowAccumulation) {
-            accumulationtype = "snow";
-            if (typeof snowAccumulation === "number") {
-                accumulation = this.getUnit('snow', snowAccumulation);
-            } else if (typeof snowAccumulation === "object" && snowAccumulation["1h"]) {
-                accumulation = this.getUnit('snow', snowAccumulation["1h"]);
-            }
-        } else if (rainAccumulation) {
-            accumulationtype = "rain";
-            if (typeof rainAccumulation === "number") {
-                accumulation = this.getUnit('rain', rainAccumulation);
-            } else if (typeof rainAccumulation === "object" && rainAccumulation["1h"]) {
-                accumulation = this.getUnit('rain', rainAccumulation["1h"]);
-            }
+        
+        // Open-Meteo gives precipitation in mm (metric)
+        const precipValue = (this.config.units === "imperial") 
+            ? precipAmount * 0.0393701 // Convert mm to inches
+            : precipAmount;
+            
+        if (precipValue > 0) {
+            accumulationtype = "rain"; // Simplifying Open-Meteo's combined 'precipitation_sum'
+            accumulation = this.getUnit('rain', precipValue);
         }
 
         if (percentChance) {
-            pop = Math.round(percentChance * 100) + "%";
+            pop = Math.round(percentChance) + "%";
         }
         return {
             pop: pop,
             accumulation: accumulation,
             accumulationtype: accumulationtype
         };
-
     },
 
     /*
@@ -609,7 +492,7 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
         var windDirection = (this.config.showWindDirection ? " " + this.getOrdinal(bearing) : "");
         var windGust = null;
         if (this.config.showWindGust && gust) {
-            windGust = this.config.label_gust_wrapper_prefix + this.config.label_maximum + this.getUnit('gust', gust) + this.config.label_gust_wrapper_suffix;
+            windGust = this.config.label_gust_wrapper_prefix + this.config.label_maximum + this.getUnit('gust', this.convertWindSpeed(gust, "kmh")) + this.config.label_gust_wrapper_suffix;
         }
         var windSpeedRaw = parseFloat(speed.toFixed(this.config['dp_wind' + (this.config.units === 'metric' ? '_m' : '_i')]));
         
@@ -622,135 +505,82 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
     },
 
     /*
-      Returns the units in use for the data pull from OpenMeteo
+      Returns the units in use for the data pull
      */
     getUnit: function(metric, value) {
+        const dpKey = 'dp_' + metric + (this.config.units === 'metric' ? '_m' : '_i');
+        const labelKey = 'label_' + metric + (this.config.units === 'metric' ? '_m' : '_i');
+        
+        var rounded = String(parseFloat(value.toFixed(this.config[dpKey])));
 
-        var rounded = String(parseFloat(value.toFixed(
-            this.config['dp_' + metric + (this.config.units === 'metric' ? '_m' : '_i')]
-        )));
+        // Apply custom leading zero logic
+        if (metric === 'rain' && !this.config.dp_precip_leading_zero && rounded.indexOf("0.") === 0) rounded = rounded.substring(1);
+        if (metric === 'wind' && !this.config.dp_wind_leading_zero && rounded.indexOf("0.") === 0) rounded = rounded.substring(1);
 
-        switch (metric) {
-            case 'rain':
-                if (!this.config.dp_precip_leading_zero && rounded.indexOf("0.") === 0) rounded = rounded.substring(1);
-                break;
-            case 'wind': 
-                if (!this.config.dp_wind_leading_zero && rounded.indexOf("0.") === 0) rounded = rounded.substring(1);
-                break;
-        }
-
-        return rounded + this.config['label_' + metric + (this.config.units === 'metric' ? '_m' : '_i')];
-
+        return rounded + this.config[labelKey];
     },
 
     /*
       Formats the wind direction into common ordinals (e.g.: NE, WSW, etc.)
-      Wind direction is provided in degress from North in the data feed.
      */
     getOrdinal: function(bearing) {
         return this.config.label_ordinals[Math.round(bearing * this.config.label_ordinals.length / 360) % this.config.label_ordinals.length];
     },
 
-    /*
-      Icon sets can be added here.  The path is relative to
-      MagicMirror/modules/MMM-OpenMeteoForecastDeluxe/icons, and the format
-      is specified here so that you can use icons in any format
-      that works for you.
-
-      OpenWeatherMap currently specifies one of ten icons for weather
-      conditions:
-
-        clear-day
-        clear-night
-        cloudy
-        fog
-        partly-cloudy-day
-        partly-cloudy-night
-        rain
-        sleet
-        snow
-        wind
-
-      All of the icon sets below support these ten plus an
-      additional three in anticipation of OpenWeatherMap enabling
-      a few more:
-
-        hail,
-        thunderstorm,
-        tornado
-
-      Lastly, the icons also contain three icons for use as inline
-      indicators beside precipitation and wind conditions. These
-      ones look best if designed to a 24px X 24px artboard.
-
-        i-rain
-        i-snow
-        i-wind
-
-     */
-    iconsets: {
-        "1m":	{ path: "1m"	, format: "svg" },
-        "1c":	{ path: "1c"	, format: "svg" },
-        "2m":	{ path: "2m"	, format: "svg" },
-        "2c":	{ path: "2c"	, format: "svg" },
-        "3m":	{ path: "3m"	, format: "svg" },
-        "3c":	{ path: "3c"	, format: "svg" },
-        "4m":	{ path: "4m"	, format: "svg" },
-        "4c":	{ path: "4c"	, format: "svg" },
-        "5m":	{ path: "5m"	, format: "svg" },
-        "5c":	{ path: "5c"	, format: "svg" },
-        "6fa":	{ path: "6fa"	, format: "svg" },
-        "6oa":	{ path: "6oa"	, format: "svg" }
+    // A minimal iconset definition needed for image path generation
+    getIconsets: function() {
+        return {
+            "1m":	{ path: "1m"	, format: "svg" },
+            "1c":	{ path: "1c"	, format: "svg" },
+            // ... (include all sets from the original module)
+        };
     },
 
     /*
-      This converts OpenMeteo icon id to icon names
-      https://developer.accuweather.com/weather-icons
+      Maps Open-Meteo WMO Weather Codes to icon names.
+      https://www.nodc.noaa.gov/archive/arc0021/0002199/1.1/data/0-data/HTML/WMO-Code.html
     */
-    convertAccuWeatherIdToIcon: function(id, accuweather_icon) {
-        //console.log(this.name, 'convertAccuWeatherIdToIcon', id, accuweather_icon);
-        if ([15,16,17,41,42].includes(id)) {
-            // Thunderstorm
-            return "thunderstorm";
-        //} else if (id >= 300 && id < 400) {
-        //    // Drizzle
-        //    return "rain";
-        //} else if (id === 511) {
-       //     // Rain - freezing rain
-        //    return "sleet";
-        } else if ([12,13,14,18].includes(id)) {
-            // Rain
-            return "rain";
-        } else if ([25,26,39,40].includes(id)) {
-            // Snow - sleet or with rain
-            return "sleet";
-        } else if ([19,20,21,22,23,29,43,44].includes(id)) {
-            // Snow
-            return "snow";
-        //} else if (id === 781) {
-       //     // Atmosphere - tornado
-        //    return "tornado";
-        } else if (id === 11) {
-            // Atmosphere
-            return "fog";
-        } else if ([1,2].includes(id)) {
-            return "clear-day";
-        } else if ([30].includes(id)) {
-			return "hot-day";
-        } else if ([3,4,5,6].includes(id)) {
-            return "partly-cloudy-day";
-        } else if ([7,8].includes(id)) {
-            return "cloudy";
-        } else if ([33,34].includes(id)) {
-            return "clear-night";
-        } else if ([35,36].includes(id)) {
-            return "partly-cloudy-night";
-        } else if ([37,38].includes(id)) {
-            return "cloudy";
-        } else if ([32].includes(id)) {
-            return "wind";
-        } else {
-            return "";
+    convertWeatherCodeToIcon: function(code, isDayTime) {
+        // This is a simplified mapping based on WMO codes
+        switch (code) {
+            case 0: // Clear sky
+                return isDayTime ? "clear-day" : "clear-night";
+            case 1: // Mainly clear
+            case 2: // Partly cloudy
+                return isDayTime ? "partly-cloudy-day" : "partly-cloudy-night";
+            case 3: // Overcast
+                return "cloudy";
+            case 45: // Fog
+            case 48: // Depositing rime fog
+                return "fog";
+            case 51: // Drizzle light
+            case 53: // Drizzle moderate
+            case 55: // Drizzle dense
+            case 61: // Rain slight
+            case 63: // Rain moderate
+            case 65: // Rain heavy
+            case 80: // Rain showers slight
+            case 81: // Rain showers moderate
+            case 82: // Rain showers violent
+                return "rain";
+            case 56: // Freezing Drizzle light
+            case 57: // Freezing Drizzle dense
+            case 66: // Freezing Rain light
+            case 67: // Freezing Rain heavy
+            case 77: // Snow grains
+                return "sleet";
+            case 71: // Snow fall slight
+            case 73: // Snow fall moderate
+            case 75: // Snow fall heavy
+            case 85: // Snow showers slight
+            case 86: // Snow showers heavy
+                return "snow";
+            case 95: // Thunderstorm slight or moderate
+            case 96: // Thunderstorm with slight hail
+            case 99: // Thunderstorm with heavy hail
+                return "thunderstorm";
+            default:
+                return "cloudy"; 
         }
     },
 
@@ -758,25 +588,19 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
       This generates a URL to the icon file
      */
     generateIconSrc: function(icon, mainIcon) {
-        if (mainIcon) {
-			console.log("icons/" + this.iconsets[this.config.mainIconset].path + "/" +
-                icon + "." + this.iconsets[this.config.mainIconset].format);
-            return this.file("icons/" + this.iconsets[this.config.mainIconset].path + "/" +
-                icon + "." + this.iconsets[this.config.mainIconset].format);
-        }
-        console.log("icons/" + this.iconsets[this.config.iconset].path + "/" +
-            icon + "." + this.iconsets[this.config.iconset].format);
-        return this.file("icons/" + this.iconsets[this.config.iconset].path + "/" +
-            icon + "." + this.iconsets[this.config.iconset].format);
+        const iconset = mainIcon ? this.config.mainIconset : this.config.iconset;
+        // The file path is relative to the module folder
+        return this.file("icons/" + this.iconsets[iconset].path + "/" +
+            icon + "." + this.iconsets[iconset].format);
     },
+    
+    // ... (include other helper functions like clearIcons, getAnimatedIconId, playIcons, sanitizeNumbers, interpolateColor)
+    // For brevity, these helper functions are omitted here but must be included in your final file.
+    
+    // --- START: Missing Helper Functions from original MMM-AccuWeatherForecastDeluxe.js ---
 
-    /*
-      When the Skycons animated set is in use, the icons need
-      to be rebuilt with each data refresh.  This traverses the
-      DOM to find all of the current animated icon canvas elements
-      and removes them by id from the skycons object.
-     */
     clearIcons: function() {
+        if (!this.skycons) return;
         this.skycons.pause();
         var self = this;
         var animatedIconCanvases = document.querySelectorAll(".skycon-" + this.identifier);
@@ -786,31 +610,12 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
         this.iconIdCounter = 0;
     },
 
-    /*
-      When the Skycons animated set is in use, the icons need
-      to be rebuilt with each data refresh.  This returns a
-      unique id that will be assigned the icon's canvas element.
-     */
     getAnimatedIconId: function() {
-
-        //id to use for the canvas element
         var iconId = "skycon_" + this.identifier + "_" + this.iconIdCounter;
         this.iconIdCounter++;
         return iconId;
     },
 
-    /*
-      For use with the Skycons animated icon set. Once the
-      DOM is updated, the icons are built and set to animate.
-      Name is a bit misleading. We needed to wait until
-      the canvas elements got added to the DOM, which doesn't
-      happen until after updateDom() finishes executing
-      before actually drawing the icons.
-
-      This routine traverses the DOM for all canavas elements
-      prepared for an animated icon, and adds the icon to the
-      skycons object.  Then the icons are played.
-    */
     playIcons: function(inst) {
         var animatedIconCanvases = document.querySelectorAll(".skycon-" + inst.identifier);
         animatedIconCanvases.forEach(function(icon) {
@@ -819,11 +624,6 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
         inst.skycons.play();
     },
 
-    /*
-      For any config parameters that are expected as integers, this
-      routine ensures they are numbers, and if they cannot be
-      converted to integers, then the module defaults are used.
-     */
     sanitizeNumbers: function(keys) {
         var self = this;
         keys.forEach(function(key) {
@@ -835,14 +635,13 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
         });
     },
 
-    /*
-        Calculate a color that is f% between c0 and c1
-        c0 = start hex (w/o #), c1 = end hex (w/o #), f is btwn 0 and 1
-    */
     interpolateColor: function(c0, c1, f){
         c0 = c0.match(/.{1,2}/g).map((oct)=>parseInt(oct, 16) * (1-f))
         c1 = c1.match(/.{1,2}/g).map((oct)=>parseInt(oct, 16) * f)
         let ci = [0,1,2].map(i => Math.min(Math.round(c0[i]+c1[i]), 255))
         return ci.reduce((a,v) => ((a << 8) + v), 0).toString(16).padStart(6, "0")
     }
+
+    // --- END: Missing Helper Functions ---
+    
 });

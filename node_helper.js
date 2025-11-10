@@ -1,99 +1,71 @@
 /*********************************
-
   Node Helper for MMM-OpenMeteoForecastDeluxe.
 
-  This helper is responsible for the DarkSky-compatible data pull from OpenMeteo.
-  At a minimum the API key, Latitude and Longitude parameters
-  must be provided.  If any of these are missing, the request
-  to OpenMeteo will not be executed, and instead an error
-  will be output the the MagicMirror log.
+  This helper is responsible for pulling daily forecast data from the 
+  Open-Meteo API, which provides a free, key-less endpoint.
 
-  Since AccuWeather has a very limited API quota on their free plan, there is an option to specify a second apiKey to double the quota.
+  The Open-Meteo API request structure is:
+  https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=temperature_2m_max,temperature_2m_min,weathercode,windspeed_10m_max,winddirection_10m_dominant,precipitation_probability_max,precipitation_sum&timeformat=unixtime&timezone=auto&forecast_days={days}
 
-  The OpenMeteo-compatible API request looks like this:
-
-    http://dataservice.accuweather.com/forecasts/v1/daily/5day/{locationKey}?apikey={apiKey}&details=true&metric={units=metric}
-
+  We specifically request 'temperature_2m_max' and 'temperature_2m_min' to get 
+  the actual air temperature (not apparent/feels-like) for the temperature bars.
 *********************************/
 
 var NodeHelper = require("node_helper");
-var needle = require("needle");
 var moment = require("moment");
+var needle = require("needle"); // Retained from original structure, though 'fetch' is usually better now.
 
 module.exports = NodeHelper.create({
 
     start: function() {
-        console.log("Starting node_helper for module [" + this.name + "]");
+        console.log("Starting node_helper for module [MMM-OpenMeteoForecastDeluxe]");
     },
 
     socketNotificationReceived: function(notification, payload) {
-        if (notification === "OpenMeteo_ONE_CALL_FORECAST_GET") {
+        if (notification === "OPENMETEO_FORECAST_GET") {
             console.log("[MMM-OpenMeteoForecastDeluxe] " + notification );
             var self = this;
 
-            if (payload.apikey == null || payload.apikey == "") {
-                console.log("[MMM-OpenMeteoForecastDeluxe] " + moment().format("D-MMM-YY HH:mm") + " ** ERROR ** No API key configured. Get an API key at http://open-meteo.com");
-            } else if (payload.locationKey == null || payload.locationKey == "" ) {
-                console.log("[MMM-OpenMeteoForecastDeluxe] " + moment().format("D-MMM-YY HH:mm") + " ** ERROR ** LocationKey not provided.");
-            } else {
-
-                var forecastUrl = payload.endpoint +
-                    "/" + payload.locationKey +
-                    "?apikey=" + payload.apikey +
-                    "&lang=" + payload.language + 
-                    "&metric=" +  ((payload.units == "imperial") ? "false" : "true")  +
-                    "&details=true";
-
-                var currentUrl = payload.endpointNow +
-                    "/" + payload.locationKey +
-                    "?apikey=" + ((payload.apikey2 == null || payload.apikey2 == "") ? payload.apikey : payload.apikey2)  +
-                    "&lang=" + payload.language + 
-                    "&metric=" +  ((payload.units == "imperial") ? "false" : "true")  +
-                    "&details=true";
-                    
-                var hourlyUrl = payload.endpointHourly +
-                    "/" + payload.locationKey +
-                    "?apikey=" + ((payload.apikey2 == null || payload.apikey2 == "") ? payload.apikey : payload.apikey2)  +
-                    "&lang=" + payload.language + 
-                    "&metric=" +  ((payload.units == "imperial") ? "false" : "true")  +
-                    "&details=true";
-                    
-                (async () => {
-                    var f = {};
-                    var fh = {};
-                    console.log("[MMM-OpenMeteoForecastDeluxe] Getting data: " + forecastUrl);
-                    const resp1 = await fetch(forecastUrl);
-                    const json1 = await resp1.json();
-                    //console.log("[MMM-OpenMeteoForecastDeluxe] url data: " + JSON.stringify(json1) );
-                    f = json1;
-                    f.instanceId = payload.instanceId;
-                    console.log("BB After Daily");
-                    
-                    console.log("[MMM-OpenMeteoForecastDeluxe] Getting data: " + currentUrl);
-                    const resp2 = await fetch(currentUrl);
-                    const json2 = await resp2.json();
-                    //console.log("[MMM-OpenMeteoForecastDeluxe] url2 data: " + JSON.stringify(json2) );
-                    f.Current = json2[0];    
-                    console.log("BB After Current");  
-                    
-                    console.log("[MMM-OpenMeteoForecastDeluxe] Getting data: " + hourlyUrl);
-                    const resp3 = await fetch(hourlyUrl);
-                    const json3 = await resp3.json();
-                    //console.log("[MMM-OpenMeteoForecastDeluxe] url3data: " + JSON.stringify(json2) );
-                    f.Hourly = json3; 
-                    console.log ("BB After Hourly");
-                    
-                    self.sendSocketNotification("OpenMeteo_ONE_CALL_FORECAST_DATA", f);
-                    console.log("[MMM-OpenMeteoForecastDeluxe] " + " after sendSocketNotification");
-                  })().catch(function (error) {
-                    // if there's an error, log it
-                    console.error("[MMM-OpenMeteoForecastDeluxe] " + " ** ERROR ** " + error);
-                });
-             
-                console.log("[MMM-OpenMeteoForecastDeluxe] after API calls");
+            if (payload.latitude == null || payload.longitude == null) {
+                console.log("[MMM-OpenMeteoForecastDeluxe] ** ERROR ** Latitude or Longitude not provided.");
+                return; // Stop execution if location is missing
             }
+
+            // We only need the DAILY forecast data for the bars layout.
+            // Open-Meteo is key-less, so the endpoint is simple.
+            var apiUrl = "https://api.open-meteo.com/v1/forecast?" +
+                "latitude=" + payload.latitude +
+                "&longitude=" + payload.longitude +
+                "&daily=temperature_2m_max,temperature_2m_min,weathercode,windspeed_10m_max,winddirection_10m_dominant,precipitation_probability_max,precipitation_sum,time" +
+                "&timeformat=unixtime" +
+                "&timezone=auto" +
+                "&forecast_days=" + payload.maxDailies; // Use the maxDailies to limit the request size
+
+            // Open-Meteo does not use a 'units' parameter; it defaults to Metric. 
+            // We will do all unit conversion in the client-side MMM-OpenMeteoForecastDeluxe.js.
+            
+            console.log("[MMM-OpenMeteoForecastDeluxe] Getting data from: " + apiUrl);
+                
+            (async () => {
+                try {
+                    const resp = await fetch(apiUrl);
+                    if (!resp.ok) {
+                        throw new Error(`HTTP error! status: ${resp.status}`);
+                    }
+                    const json = await resp.json();
+                    
+                    // Add instanceId to the payload before sending back
+                    json.instanceId = payload.instanceId;
+
+                    // The Open-Meteo daily data is nested under the 'daily' property
+                    self.sendSocketNotification("OPENMETEO_FORECAST_DATA", json);
+                    console.log("[MMM-OpenMeteoForecastDeluxe] Successfully retrieved and sent Open-Meteo data.");
+
+                } catch (error) {
+                    console.error("[MMM-OpenMeteoForecastDeluxe] ** ERROR ** Failed to fetch weather data: " + error);
+                    self.sendSocketNotification("OPENMETEO_FETCH_ERROR", { instanceId: payload.instanceId, error: error.message });
+                }
+            })();
         }
-    },
-
-
+    }
 });
