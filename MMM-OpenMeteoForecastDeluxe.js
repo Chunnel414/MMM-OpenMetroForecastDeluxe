@@ -442,10 +442,22 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
                 
                 // Calculate color factor at the start and end of this day's bar relative to the global range
                 var colorStartPos = (tempMin - minGlobal) / rangeTotal;
-                var colorEndPos = (tempMax - minGlobal) / rangeTotal;
-                
-                fItem.colorStart = '#' + this.interpolateColor(colorLo, colorHi, colorStartPos);
-                fItem.colorEnd = '#' + this.interpolateColor(colorLo, colorHi, colorEndPos);
+            	var colorEndPos = (tempMax - minGlobal) / rangeTotal;
+            
+            	// Log raw positions before clamping
+            	this.logToTerminal(`[OMFD-COLOR] Day ${index}: Raw Start/End Pos: ${colorStartPos.toFixed(4)} / ${colorEndPos.toFixed(4)}`);
+
+            	// Sanitize position: Clamp values to a safe range (0.0 to 1.0)
+            	const safeStartPos = Math.max(0, Math.min(1, colorStartPos));
+            	const safeEndPos = Math.max(0, Math.min(1, colorEndPos));
+
+            	var colorLo = this.config.lowColor.substring(1);
+            	var colorHi = this.config.highColor.substring(1);
+            
+            	fItem.colorStart = '#' + this.interpolateColor(colorLo, colorHi, safeStartPos);
+            	fItem.colorEnd = '#' + this.interpolateColor(colorLo, colorHi, safeEndPos);
+
+            	this.logToTerminal(`[OMFD-COLOR] Day ${index}: Colors interpolated successfully.`);
             }
         }
         
