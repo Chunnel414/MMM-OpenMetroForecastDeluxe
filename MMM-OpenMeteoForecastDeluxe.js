@@ -118,7 +118,7 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
     },
 
     getTemplateData: function() {
-		// FIX 2: Ensure iconsets is initialized before accessing it.
+		// FIX: Ensures iconsets is initialized before accessing it.
         if (!this.iconsets) {
             this.iconsets = this.getIconsets();
         }
@@ -152,7 +152,7 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
         this.animatedIconDrawTimer = null;
         this.iconsets = this.getIconsets(); // Initializes this.iconsets
         
-        // FIX 1: Define 'phrases' early to prevent crash in getTemplateData
+        // FIX: Define 'phrases' early to prevent crash in getTemplateData
         this.phrases = {
 			loading: this.translate("LOADING")
 		};
@@ -198,7 +198,7 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
     },
 
     socketNotificationReceived: function(notification, payload) {
-        // FIX 3: LOG BRIDGE - Add handler for client-side logging
+        // FIX: LOG BRIDGE - Add handler for client-side logging
         if (notification === "CLIENT_LOG") {
             // Note: node_helper should handle printing this to the terminal
             return; 
@@ -216,7 +216,7 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
             this.weatherData = payload;
             
             // LOG 1: Confirm raw data payload arrival
-            this.logToTerminal("[OMFD] RAW PAYLOAD RECEIVED. Attempting processData.");
+            this.logToTerminal(`[OMFD] RAW PAYLOAD RECEIVED. Attempting processData.`);
             
             this.formattedWeatherData = this.processWeatherData();
 			
@@ -272,22 +272,22 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
             const minTemp = this.getTemp(rawDaily.temperature_2m_min[i], "C");
             const maxTemp = this.getTemp(rawDaily.temperature_2m_max[i], "C");
             
-            this.logToTerminal(`[OMFD-LOOP] Index ${i}: Min/Max API values processed: ${minTemp} / ${maxTemp}`); // <-- NEW LOG
+            this.logToTerminal(`[OMFD-LOOP] Index ${i}: Min/Max API values processed: ${minTemp} / ${maxTemp}`);
 
             // Safety Check: Only update global min/max if the fetched temperature is a valid number
             if (typeof minTemp === 'number' && !isNaN(minTemp)) {
                 minTempGlobal = Math.min(minTempGlobal, minTemp);
             } else {
-                 this.logToTerminal(`[OMFD-LOOP] Index ${i}: Skipping invalid minTemp value.`); // <-- NEW LOG
+                 this.logToTerminal(`[OMFD-LOOP] Index ${i}: Skipping invalid minTemp value.`);
             }
             if (typeof maxTemp === 'number' && !isNaN(maxTemp)) {
                 maxTempGlobal = Math.max(maxTempGlobal, maxTemp);
             } else {
-                 this.logToTerminal(`[OMFD-LOOP] Index ${i}: Skipping invalid maxTemp value.`); // <-- NEW LOG
+                 this.logToTerminal(`[OMFD-LOOP] Index ${i}: Skipping invalid maxTemp value.`);
             }
         }
         
-        this.logToTerminal(`[OMFD] Global Temp Range: ${minTempGlobal}degC to ${maxTempGlobal}degC`);
+        this.logToTerminal(`[OMFD] Global Temp Range FINAL: ${minTempGlobal}degC to ${maxTempGlobal}degC`);
 
         // 2. Build the daily forecast objects
         for (let i = 0; i < Math.min(rawDaily.time.length, this.config.maxDailiesToShow); i++) {
@@ -296,7 +296,7 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
             if (i === 0 && this.config.ignoreToday) continue;
             this.logToTerminal(`[OMFD] Processing day index: ${i}`);
 
-            let dailyItem = this.dailyForecastItemFactory(rawDaily, i, minTempGlobal, maxTempGlobal);
+            let dailyItem = this.dailyForecastItemFactory(rawDaily, i, minTempGlobal, maxGlobal);
             dailies.push(dailyItem);
         }
         this.logToTerminal("[OMFD] Daily forecast array created. Starting hourly/current processing.");
@@ -339,7 +339,7 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
         const hourlyCurrentData = hoursData[currentHourIndex] || hoursData[0]; 
         
         // Use the first day of the daily forecast for today's high/low
-        const todayDaily = this.dailyForecastItemFactory(rawDaily, 0, minTempGlobal, maxTempGlobal);
+        const todayDaily = this.dailyForecastItemFactory(rawDaily, 0, minTempGlobal, maxGlobal);
 
         // This object structure matches what your Nunjucks template expects (e.g., `forecast.currently.temperature`)
         this.logToTerminal("[OMFD] Data object successfully built. Returning formatted data.");
@@ -383,6 +383,9 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
     dailyForecastItemFactory: function(fData, index, minGlobal, maxGlobal) {
         var fItem = new Object();
         
+        // FIX 3: Logging around the consts
+        this.logToTerminal(`[OMFD-FACTORY] Day ${index}: Starting const declarations.`);
+        
         const tempMin = this.getTemp(fData.temperature_2m_min[index], "C");
         const tempMax = this.getTemp(fData.temperature_2m_max[index], "C");
         const windSpeed = this.convertWindSpeed(fData.windspeed_10m_max[index], "kmh");
@@ -391,6 +394,8 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
         const precipProb = fData.precipitation_probability_max[index];
         const precipAmount = fData.precipitation_sum[index];
         const date = moment.unix(fData.time[index]);
+
+        this.logToTerminal(`[OMFD-FACTORY] Day ${index}: Consts defined. Wind: ${windSpeed}/${windGust}`);
 
         // --------- Date / Time Display ---------
         if (index === 0 && this.config.showDayAsTodayInDailyForecast) fItem.day = this.config.label_today;
@@ -442,36 +447,20 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
                 
                 // Calculate color factor at the start and end of this day's bar relative to the global range
                 var colorStartPos = (tempMin - minGlobal) / rangeTotal;
-            	var colorEndPos = (tempMax - minGlobal) / rangeTotal;
-            
-            	// Log raw positions before clamping
-            	this.logToTerminal(`[OMFD-COLOR] Day ${index}: Raw Start/End Pos: ${colorStartPos.toFixed(4)} / ${colorEndPos.toFixed(4)}`);
-
-            	// Sanitize position: Clamp values to a safe range (0.0 to 1.0)
-            	const safeStartPos = Math.max(0, Math.min(1, colorStartPos));
-            	const safeEndPos = Math.max(0, Math.min(1, colorEndPos));
-
-            	var colorLo = this.config.lowColor.substring(1);
-            	var colorHi = this.config.highColor.substring(1);
-            
-            	fItem.colorStart = '#' + this.interpolateColor(colorLo, colorHi, safeStartPos);
-            	fItem.colorEnd = '#' + this.interpolateColor(colorLo, colorHi, safeEndPos);
-
-            	this.logToTerminal(`[OMFD-COLOR] Day ${index}: Colors interpolated successfully.`);
+                var colorEndPos = (tempMax - minGlobal) / rangeTotal;
+                
+                fItem.colorStart = '#' + this.interpolateColor(colorLo, colorHi, colorStartPos);
+                fItem.colorEnd = '#' + this.interpolateColor(colorLo, colorHi, colorEndPos);
             }
         }
         
-		// --------- Precipitation ---------
-        this.logToTerminal(`[OMFD-PRECIP] Processing precip. Pop: ${precipProb}, Amt: ${precipAmount}`); // <-- NEW LOG START
-
-        fItem.precipitation = this.formatPrecipitation(precipProb, precipAmount, null); 
-        
-        this.logToTerminal(`[OMFD-PRECIP] Precipitation formatted successfully.`); // <-- NEW LOG END
+        // --------- Precipitation ---------
+        fItem.precipitation = this.formatPrecipitation(precipProb, precipAmount, null); // Open-Meteo gives total precip, so we use rain field for amount
 
         // --------- Wind ---------
-        this.logToTerminal(`[OMFD-WIND] Starting formatWind call.`); // <-- NEW LOG START
         fItem.wind = (this.formatWind(windSpeed, windDirection, windGust));
 
+        this.logToTerminal(`[OMFD-FACTORY] Day ${index}: Factory completed successfully.`);
         return fItem;
     },
 
@@ -508,6 +497,7 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
     
     // Converts Celsius to the configured unit (Imperial or Metric)
     getTemp: function(tempInC, inputUnit) {
+        if (tempInC == null) return 0; // FIX: Return 0 if input is null/undefined
         if (inputUnit === "C" && this.config.units === "imperial") {
             return (tempInC * 9/5) + 32;
         }
@@ -516,6 +506,7 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
     
     // Converts Open-Meteo's m/s wind speed to the configured unit
     convertWindSpeed: function(windInMS, unit) {
+        if (windInMS == null) return 0; // FIX: Return 0 if input is null/undefined
         if (this.config.units === "imperial") {
             // Convert to MPH
             return windInMS * 2.23694; 
@@ -566,27 +557,14 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
       Returns a formatted data object for wind conditions
      */
     formatWind: function(speed, bearing, gust) {
-        this.logToTerminal(`[OMFD-WIND] Starting formatWind. Speed: ${speed}, Gust: ${gust}`);
-
-        // Safety check: ensure speed is a valid number, default to 0 if null/undefined
-        const safeSpeed = (speed == null || isNaN(speed)) ? 0 : speed;
-        // Safety check: ensure gust is a valid number, set to null if invalid
-        const safeGust = (gust == null || isNaN(gust)) ? null : gust;
-
-        var windSpeed = this.getUnit('wind', safeSpeed);
+        var windSpeed = this.getUnit('wind', speed);
         var windDirection = (this.config.showWindDirection ? " " + this.getOrdinal(bearing) : "");
         var windGust = null;
-
-        if (this.config.showWindGust && safeGust !== null) {
-            // NOTE: Using safeGust ensures convertWindSpeed receives a number
-            windGust = this.config.label_gust_wrapper_prefix + this.config.label_maximum + this.getUnit('gust', this.convertWindSpeed(safeGust, "kmh")) + this.config.label_gust_wrapper_suffix;
+        if (this.config.showWindGust && gust) {
+            windGust = this.config.label_gust_wrapper_prefix + this.config.label_maximum + this.getUnit('gust', this.convertWindSpeed(gust, "kmh")) + this.config.label_gust_wrapper_suffix;
         }
-
-        // Use safeSpeed for the raw calculation
-        var windSpeedRaw = parseFloat(safeSpeed.toFixed(this.config['dp_wind' + (this.config.units === 'metric' ? '_m' : '_i')]));
+        var windSpeedRaw = parseFloat(speed.toFixed(this.config['dp_wind' + (this.config.units === 'metric' ? '_m' : '_i')]));
         
-        this.logToTerminal(`[OMFD-WIND] Successfully formatted wind data.`);
-
         return {
             windSpeedRaw: windSpeedRaw,
             windSpeed: windSpeed,
