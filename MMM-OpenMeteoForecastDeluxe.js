@@ -209,12 +209,12 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
             this.weatherData = payload;
             
             // LOG 1: Confirm raw data payload arrival
-            console.log("[OMFD] RAW PAYLOAD RECEIVED:", JSON.stringify(payload, null, 2).substring(0, 500) + '...');
+            this.logToTerminal("[OMFD] RAW PAYLOAD RECEIVED:", JSON.stringify(payload, null, 2).substring(0, 500) + '...');
             
             this.formattedWeatherData = this.processWeatherData();
 			
 			// LOG 2: Confirm processWeatherData completed
-			console.log("[OMFD] PROCESS DATA COMPLETE. RENDER STARTING.");
+			this.logToTerminal("[OMFD] PROCESS DATA COMPLETE. RENDER STARTING.");
 			
             this.updateDom(this.config.updateFadeSpeed);
 
@@ -237,7 +237,7 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
       This is the core function for processing Open-Meteo's parallel arrays and calculating bar properties.
     */
     processWeatherData: function() {
-        console.log("[OMFD] Starting processWeatherData...");
+        this.logToTerminal("[OMFD] Starting processWeatherData...");
         
         const rawDaily = this.weatherData.daily;
         const rawHourly = this.weatherData.hourly;
@@ -265,19 +265,19 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
             maxTempGlobal = Math.max(maxTempGlobal, this.getTemp(rawDaily.temperature_2m_max[i], "C"));
         }
         
-        console.log('[OMFD] Global Temp Range: ${minTempGlobal}degC to ${maxTempGlobal}degC');
+        this.logToTerminal('[OMFD] Global Temp Range: ${minTempGlobal}degC to ${maxTempGlobal}degC');
 
         // 2. Build the daily forecast objects
         for (let i = 0; i < Math.min(rawDaily.time.length, this.config.maxDailiesToShow); i++) {
             
             // Skip today if configured to ignore
             if (i === 0 && this.config.ignoreToday) continue;
-            console.log('[OMFD] Processing day index:: ${i}');
+            this.logToTerminal('[OMFD] Processing day index:: ${i}');
 
             let dailyItem = this.dailyForecastItemFactory(rawDaily, i, minTempGlobal, maxTempGlobal);
             dailies.push(dailyItem);
         }
-        console.log("[OMFD] Daily forecast array created. Starting hourly/current processing.");
+        this.logToTerminal("[OMFD] Daily forecast array created. Starting hourly/current processing.");
 
         // ------------------ Hourly Forecast Processing ------------------
         var hourlies = [];        
@@ -308,7 +308,7 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
         }
         
         // ------------------ Current Conditions Processing ------------------
-        console.log("[OMFD] Starting Current/Hourly Processing...");
+        this.logToTerminal("[OMFD] Starting Current/Hourly Processing...");
         // Use the new payload.current object for cureent temp/wind/code
 		const rawCurrent = this.weatherData.current;
 
@@ -320,7 +320,7 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
         const todayDaily = this.dailyForecastItemFactory(rawDaily, 0, minTempGlobal, maxTempGlobal);
 
         // This object structure matches what your Nunjucks template expects (e.g., `forecast.currently.temperature`)
-        console.log("[OMFD] Data object sucessfully built. Returning formatted data.");
+        this.logToTerminal("[OMFD] Data object sucessfully built. Returning formatted data.");
         return {
             "currently": {
                 temperature: this.getUnit('temp', this.getTemp(rawCurrent.temperature_2m, "C")),
@@ -673,5 +673,10 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
     }
 
     // --- END: Missing Helper Functions ---
-    
+    logToTerminal: function(message) {
+        this.sendSocketNotification("CLIENT_LOG", {
+            instanceId: this.identifier,
+            message: message
+        });
+    },
 });
