@@ -150,7 +150,7 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
         this.iconIdCounter = 0;
         this.formattedWeatherData = null;
         this.animatedIconDrawTimer = null;
-        this.iconsets = this.getIconsets(); 
+        //this.iconsets = this.getIconsets(); 
         
         // FIX 1: Define 'phrases' early to prevent crash in getTemplateData
         this.phrases = {
