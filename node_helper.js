@@ -32,8 +32,8 @@ module.exports = NodeHelper.create({
                 `&longitude=${payload.longitude}` +
                 // REQUEST CURRENT DATA 
                 `&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m,winddirection_10m` +
-                // REQUEST HOURLY DATA
-                `&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,windspeed_10m,winddirection_10m,windgusts_10m,weathercode` +
+                // FIXED HOURLY DATA LIST
+                `&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,windspeed_10m,weathercode` + 
                 // REQUEST DAILY DATA FOR FORECAST
                 `&daily=temperature_2m_max,temperature_2m_min,weathercode,windspeed_10m_max,winddirection_10m_dominant,precipitation_probability_max,precipitation_sum,sunrise,sunset,time` +
                 `&timeformat=unixtime` +
