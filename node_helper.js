@@ -24,6 +24,9 @@ module.exports = NodeHelper.create({
             if (payload.latitude == null || payload.longitude == null) {
                 console.log("[MMM-OpenMeteoForecastDeluxe] ** ERROR ** Latitude or Longitude not provided.");
                 return; // Stop execution if location is missing
+            } else if (notification === "CLIENT_LOG" && payload.instanceId === this.instanceId) {
+            // NEW LOG BRIDGE: Print client-side logs to the terminal
+            console.log(`[CLIENT LOG] ${payload.message}`);
             }
 
             // FIX: Construct the URL using a single backtick template literal
