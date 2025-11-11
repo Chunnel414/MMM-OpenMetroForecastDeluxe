@@ -434,10 +434,15 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
             }
         }
         
-        // --------- Precipitation ---------
-        fItem.precipitation = this.formatPrecipitation(precipProb, precipAmount, null); // Open-Meteo gives total precip, so we use rain field for amount
+		// --------- Precipitation ---------
+        this.logToTerminal(`[OMFD-PRECIP] Processing precip. Pop: ${precipProb}, Amt: ${precipAmount}`); // <-- NEW LOG START
+
+        fItem.precipitation = this.formatPrecipitation(precipProb, precipAmount, null); 
+        
+        this.logToTerminal(`[OMFD-PRECIP] Precipitation formatted successfully.`); // <-- NEW LOG END
 
         // --------- Wind ---------
+        this.logToTerminal(`[OMFD-WIND] Starting formatWind call.`); // <-- NEW LOG START
         fItem.wind = (this.formatWind(windSpeed, windDirection, windGust));
 
         return fItem;
