@@ -150,7 +150,7 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
         this.iconIdCounter = 0;
         this.formattedWeatherData = null;
         this.animatedIconDrawTimer = null;
-        //this.iconsets = this.getIconsets(); 
+        this.iconsets = this.getIconsets(); // Initializes this.iconsets
         
         // FIX 1: Define 'phrases' early to prevent crash in getTemplateData
         this.phrases = {
@@ -540,4 +540,156 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
         if (this.config.showWindGust && gust) {
             windGust = this.config.label_gust_wrapper_prefix + this.config.label_maximum + this.getUnit('gust', this.convertWindSpeed(gust, "kmh")) + this.config.label_gust_wrapper_suffix;
         }
-        var windSpeedRaw = parseFloat(speed.toFixed(this.config['dp_wind' + (this.config.units === 'metric' ? '_m' : '_i')
+        var windSpeedRaw = parseFloat(speed.toFixed(this.config['dp_wind' + (this.config.units === 'metric' ? '_m' : '_i')]));
+        
+        return {
+            windSpeedRaw: windSpeedRaw,
+            windSpeed: windSpeed,
+            windDirection: windDirection,
+            windGust: windGust
+        };
+    },
+
+    /*
+      Returns the units in use for the data pull
+     */
+    getUnit: function(metric, value) {
+        const dpKey = 'dp_' + metric + (this.config.units === 'metric' ? '_m' : '_i');
+        const labelKey = 'label_' + metric + (this.config.units === 'metric' ? '_m' : '_i');
+        
+        var rounded = String(parseFloat(value.toFixed(this.config[dpKey])));
+
+        // Apply custom leading zero logic
+        if (metric === 'rain' && !this.config.dp_precip_leading_zero && rounded.indexOf("0.") === 0) rounded = rounded.substring(1);
+        if (metric === 'wind' && !this.config.dp_wind_leading_zero && rounded.indexOf("0.") === 0) rounded = rounded.substring(1);
+
+        return rounded + this.config[labelKey];
+    },
+
+    /*
+      Formats the wind direction into common ordinals (e.g.: NE, WSW, etc.)
+     */
+    getOrdinal: function(bearing) {
+        return this.config.label_ordinals[Math.round(bearing * this.config.label_ordinals.length / 360) % this.config.label_ordinals.length];
+    },
+
+    // A minimal iconset definition needed for image path generation
+    getIconsets: function() {
+        return {
+            "1m":	{ path: "1m"	, format: "svg" },
+            "1c":	{ path: "1c"	, format: "svg" },
+            // ... (include all sets from the original module)
+        };
+    },
+
+    /*
+      Maps Open-Meteo WMO Weather Codes to icon names.
+      https://www.nodc.noaa.gov/archive/arc0021/0002199/1.1/data/0-data/HTML/WMO-Code.html
+    */
+    convertWeatherCodeToIcon: function(code, isDayTime) {
+        // This is a simplified mapping based on WMO codes
+        switch (code) {
+            case 0: // Clear sky
+                return isDayTime ? "clear-day" : "clear-night";
+            case 1: // Mainly clear
+            case 2: // Partly cloudy
+                return isDayTime ? "partly-cloudy-day" : "partly-cloudy-night";
+            case 3: // Overcast
+                return "cloudy";
+            case 45: // Fog
+            case 48: // Depositing rime fog
+                return "fog";
+            case 51: // Drizzle light
+            case 53: // Drizzle moderate
+            case 55: // Drizzle dense
+            case 61: // Rain slight
+            case 63: // Rain moderate
+            case 65: // Rain heavy
+            case 80: // Rain showers slight
+            case 81: // Rain showers moderate
+            case 82: // Rain showers violent
+                return "rain";
+            case 56: // Freezing Drizzle light
+            case 57: // Freezing Drizzle dense
+            case 66: // Freezing Rain light
+            case 67: // Freezing Rain heavy
+            case 77: // Snow grains
+                return "sleet";
+            case 71: // Snow fall slight
+            case 73: // Snow fall moderate
+            case 75: // Snow fall heavy
+            case 85: // Snow showers slight
+            case 86: // Snow showers heavy
+                return "snow";
+            case 95: // Thunderstorm slight or moderate
+            case 96: // Thunderstorm with slight hail
+            case 99: // Thunderstorm with heavy hail
+                return "thunderstorm";
+            default:
+                return "cloudy"; 
+        }
+    },
+
+    /*
+      This generates a URL to the icon file
+     */
+    generateIconSrc: function(icon, mainIcon) {
+        const iconset = mainIcon ? this.config.mainIconset : this.config.iconset;
+        // The file path is relative to the module folder
+        return this.file("icons/" + this.iconsets[iconset].path + "/" +
+            icon + "." + this.iconsets[iconset].format);
+    },
+    
+    // --- START: Missing Helper Functions ---
+
+    clearIcons: function() {
+        if (!this.skycons) return;
+        this.skycons.pause();
+        var self = this;
+        var animatedIconCanvases = document.querySelectorAll(".skycon-" + this.identifier);
+        animatedIconCanvases.forEach(function(icon) {
+            self.skycons.remove(icon.id);
+        });
+        this.iconIdCounter = 0;
+    },
+
+    getAnimatedIconId: function() {
+        var iconId = "skycon_" + this.identifier + "_" + this.iconIdCounter;
+        this.iconIdCounter++;
+        return iconId;
+    },
+
+    playIcons: function(inst) {
+        var animatedIconCanvases = document.querySelectorAll(".skycon-" + inst.identifier);
+        animatedIconCanvases.forEach(function(icon) {
+            inst.skycons.add(icon.id, icon.getAttribute("data-animated-icon-name"));
+        });
+        inst.skycons.play();
+    },
+
+    sanitizeNumbers: function(keys) {
+        var self = this;
+        keys.forEach(function(key) {
+            if (isNaN(parseInt(self.config[key]))) {
+                self.config[key] = self.defaults[key];
+            } else {
+                self.config[key] = parseInt(self.config[key]);
+            }
+        });
+    },
+
+    interpolateColor: function(c0, c1, f){
+        c0 = c0.match(/.{1,2}/g).map((oct)=>parseInt(oct, 16) * (1-f))
+        c1 = c1.match(/.{1,2}/g).map((oct)=>parseInt(oct, 16) * f)
+        let ci = [0,1,2].map(i => Math.min(Math.round(c0[i]+c1[i]), 255))
+        return ci.reduce((a,v) => ((a << 8) + v), 0).toString(16).padStart(6, "0")
+    },
+
+    // --- END: Missing Helper Functions ---
+    logToTerminal: function(message) {
+        this.sendSocketNotification("CLIENT_LOG", {
+            instanceId: this.identifier,
+            message: message
+        });
+    },
+});
