@@ -534,14 +534,27 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
       Returns a formatted data object for wind conditions
      */
     formatWind: function(speed, bearing, gust) {
-        var windSpeed = this.getUnit('wind', speed);
+        this.logToTerminal(`[OMFD-WIND] Starting formatWind. Speed: ${speed}, Gust: ${gust}`);
+
+        // Safety check: ensure speed is a valid number, default to 0 if null/undefined
+        const safeSpeed = (speed == null || isNaN(speed)) ? 0 : speed;
+        // Safety check: ensure gust is a valid number, set to null if invalid
+        const safeGust = (gust == null || isNaN(gust)) ? null : gust;
+
+        var windSpeed = this.getUnit('wind', safeSpeed);
         var windDirection = (this.config.showWindDirection ? " " + this.getOrdinal(bearing) : "");
         var windGust = null;
-        if (this.config.showWindGust && gust) {
-            windGust = this.config.label_gust_wrapper_prefix + this.config.label_maximum + this.getUnit('gust', this.convertWindSpeed(gust, "kmh")) + this.config.label_gust_wrapper_suffix;
+
+        if (this.config.showWindGust && safeGust !== null) {
+            // NOTE: Using safeGust ensures convertWindSpeed receives a number
+            windGust = this.config.label_gust_wrapper_prefix + this.config.label_maximum + this.getUnit('gust', this.convertWindSpeed(safeGust, "kmh")) + this.config.label_gust_wrapper_suffix;
         }
-        var windSpeedRaw = parseFloat(speed.toFixed(this.config['dp_wind' + (this.config.units === 'metric' ? '_m' : '_i')]));
+
+        // Use safeSpeed for the raw calculation
+        var windSpeedRaw = parseFloat(safeSpeed.toFixed(this.config['dp_wind' + (this.config.units === 'metric' ? '_m' : '_i')]));
         
+        this.logToTerminal(`[OMFD-WIND] Successfully formatted wind data.`);
+
         return {
             windSpeedRaw: windSpeedRaw,
             windSpeed: windSpeed,
