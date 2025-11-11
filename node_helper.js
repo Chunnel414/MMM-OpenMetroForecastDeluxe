@@ -42,29 +42,42 @@ module.exports = NodeHelper.create({
 
             console.log("[MMM-OpenMeteoForecastDeluxe] Getting data from: " + apiUrl);
 
-            (async () => {
-                try {
-                    // Bare minimum fetch call
-                    const resp = await fetch(apiUrl); 
+            const MAX_RETRIES = 3;
+            let currentRetry = 0;
 
-                    if (!resp.ok) {
-                        // This will now capture a 400 or 403 status if the security check passes
-                        throw new Error(`HTTP Error! Status: ${resp.status}`);
+            const fetchData = async () => {
+                while (currentRetry < MAX_RETRIES) {
+                    try {
+                        const resp = await fetch(apiUrl); 
+
+                        if (!resp.ok) {
+                            throw new Error(`HTTP Error! Status: ${resp.status}`);
+                        }
+
+                        const json = await resp.json();
+
+                        json.instanceId = payload.instanceId;
+
+                        self.sendSocketNotification("OPENMETEO_FORECAST_DATA", json);
+                        console.log(`[MMM-OpenMeteoForecastDeluxe] Successfully retrieved data after ${currentRetry} retries.`);
+                        return; // Exit function on success
+
+                    } catch (error) {
+                        currentRetry++;
+                        console.warn(`[OMFD] Fetch failed (Attempt ${currentRetry}/${MAX_RETRIES}): ${error.name} - ${error.message}`);
+                        
+                        // If max retries reached, throw final error
+                        if (currentRetry === MAX_RETRIES) {
+                            console.error(`[OMFD] ** ERROR ** Failed to fetch weather data after ${MAX_RETRIES} attempts.`);
+                            self.sendSocketNotification("OPENMETEO_FETCH_ERROR", { instanceId: payload.instanceId, error: error.message });
+                        }
+                        // Wait briefly before next attempt
+                        await new Promise(resolve => setTimeout(resolve, 120000)); // Wait 120 seconds
                     }
-
-                    const json = await resp.json();
-
-                    json.instanceId = payload.instanceId;
-
-                    self.sendSocketNotification("OPENMETEO_FORECAST_DATA", json);
-                    console.log("[MMM-OpenMeteoForecastDeluxe] Successfully retrieved and sent Open-Meteo data.");
-
-                } catch (error) {
-                    // This is still our debugging line
-                    console.error("[MMM-OpenMeteoForecastDeluxe] ** ERROR ** Failed to fetch weather data: " + error.name + " - " + error.message);
-                    self.sendSocketNotification("OPENMETEO_FETCH_ERROR", { instanceId: payload.instanceId, error: error.message });
                 }
-            })();
+            };
+            
+            fetchData();
         }
     }
 });
