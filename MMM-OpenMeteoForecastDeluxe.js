@@ -290,9 +290,28 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
             }
             let dailyItem = this.dailyForecastItemFactory(rawDaily, i, minTempGlobal, maxTempGlobal); // CRASH IS HERE
             dailies.push(dailyItem);
+
+            this.logToTerminal(`[OMFD-PROCESS] END dailyForecastItemFactory for index: ${i}`);
         }
-		
+        this.logToTerminal("[OMFD-PROCESS] Daily forecast array created. Starting hourly/current processing.");
+
         // ... (Hourly and Current Conditions processing blocks)
+		// ------------------ DIAGNOSTIC LOGGING OF FINAL OBJECT ------------------
+        const finalDataObject = {
+            "currently": { /* ... */ },
+            "summary": "Powered by Open-Meteo",
+            "hourly": hourlies,
+            "daily": dailies,
+        };
+        
+        // CRITICAL DIAGNOSTIC STEP: Log the structure of the object passed to Nunjucks
+        this.logToTerminal(`[OMFD-PROCESS] FINAL DATA OBJECT READY.`);
+        
+        // Log a stringified version of the final data object for inspection
+        this.logToTerminal(`[OMFD-PROCESS] FINAL PAYLOAD: ${JSON.stringify(finalDataObject)}`);
+		
+        this.logToTerminal("[OMFD-PROCESS] All processing finished. Building return object.");
+\
         return {
             "currently": {
                 temperature: this.getUnit('temp', this.getTemp(rawCurrent.temperature_2m, "C")),
