@@ -438,28 +438,41 @@ this.logToTerminal("[OMFD-PROCESS] START Hourly Forecast Processing.");
     // ------------------ Hourly Forecast Item Factory ------------------
 
     hourlyForecastItemFactory: function(hData, rawDaily) {
+        this.logToTerminal(`[OMFD-H-FACTORY] START hourlyForecastItemFactory logic.`);
         var fItemH = new Object();
         
+        this.logToTerminal(`[OMFD-H-FACTORY] Day ${index}: Start const date.`);
         const date = moment.unix(hData.time);
+        
+        this.logToTerminal(`[OMFD-H-FACTORY] Day ${index}: Start const hourIndex.`);
         const hourIndex = rawDaily.time.findIndex(t => moment.unix(t).day() === date.day());
         
+        this.logToTerminal(`[OMFD-H-FACTORY] Day ${index}: Start const isDayTime.`);
         const isDayTime = date.isBetween(moment.unix(rawDaily.sunrise[hourIndex]), moment.unix(rawDaily.sunset[hourIndex]));
         
+        this.logToTerminal(`[OMFD-H-FACTORY] Day ${index}: Start time formatting.`);
         fItemH.time = date.format(this.config.label_timeFormat);
+        
+        this.logToTerminal(`[OMFD-H-FACTORY] Day ${index}: Start temperature calc.`);
         fItemH.temperature = this.getUnit('temp', this.getTemp(hData.temperature_2m, "C")); 
         
         // --------- Precipitation ---------
+        this.logToTerminal(`[OMFD-H-FACTORY] Day ${index}: Start precipitation calc.`);
         fItemH.precipitation = this.formatPrecipitation(hData.precipitation_probability, hData.precipitation, null);
         
         // --------- Wind ---------
+        this.logToTerminal(`[OMFD-H-FACTORY] Day ${index}: Start wind calc.`);
         fItemH.wind = (this.formatWind(this.convertWindSpeed(hData.windspeed_10m, "kmh"), hData.winddirection_10m, hData.windgusts_10m));
 
         // --------- Icon ---------
+        this.logToTerminal(`[OMFD-H-FACTORY] Day ${index}: Start icon calc.`);
         if (this.config.useAnimatedIcons && !this.config.animateMainIconOnly) {
             fItemH.animatedIconId = this.getAnimatedIconId();
             fItemH.animatedIconName = this.convertWeatherCodeToIcon(hData.weathercode, isDayTime);
         }
         fItemH.iconPath = this.generateIconSrc(this.convertWeatherCodeToIcon(hData.weathercode, isDayTime));
+        
+        this.logToTerminal(`[OMFD-H-FACTORY] END hourlyForecastItemFactory logic.`);
         return fItemH;
     },
     
