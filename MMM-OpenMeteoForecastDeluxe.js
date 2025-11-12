@@ -439,7 +439,7 @@ this.logToTerminal("[OMFD-PROCESS] START Hourly Forecast Processing.");
 
     hourlyForecastItemFactory: function(hData, rawDaily) {
         this.logToTerminal(`[OMFD-H-FACTORY] START hourlyForecastItemFactory logic.`);
-        var fItemH = new Object();
+        var fItemH = {};
         
         this.logToTerminal(`[OMFD-H-FACTORY] Day ${index}: Start const date.`);
         const date = moment.unix(hData.time);
