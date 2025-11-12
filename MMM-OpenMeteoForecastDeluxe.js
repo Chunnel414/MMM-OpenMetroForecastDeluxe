@@ -290,34 +290,44 @@ processWeatherData: function() {
     }
 
     // ------------------ Hourly Forecast Processing ------------------
-    this.logToTerminal("[OMFD-PROCESS] START Hourly Forecast Processing.");
-	var hourlies = [];        
+this.logToTerminal("[OMFD-PROCESS] START Hourly Forecast Processing.");
+    var hourlies = [];        
     var displayCounter = 0;
     var currentIndex = 0; 
     
     // Find the index of the current hour (to start from now + interval)
-    // Since Open-Meteo gives hourly data, we find the first hour *after* now 
+    this.logToTerminal("[OMFD-H-DBG] Calculating nowUnix.");
     const nowUnix = moment().unix();
+    this.logToTerminal(`[OMFD-H-DBG] nowUnix: ${nowUnix}`);
+
+    this.logToTerminal("[OMFD-H-DBG] Calculating startIndex.");
     let startIndex = hoursData.findIndex(h => moment.unix(h.time).unix() > nowUnix);
+    this.logToTerminal(`[OMFD-H-DBG] startIndex: ${startIndex}`);
 
     // Adjust to the next interval if needed
+    this.logToTerminal("[OMFD-H-DBG] Adjusting startIndex with Interval.");
     while (startIndex > 0 && (startIndex % this.config.hourlyForecastInterval) !== 0) {
         startIndex++;
+        this.logToTerminal(`[OMFD-H-DBG] startIndex adjusted: ${startIndex}`);
     }
     
     if (startIndex === -1) startIndex = 0; // Fallback if no future hour found
+    this.logToTerminal(`[OMFD-H-DBG] Final startIndex: ${startIndex}`);
 
     currentIndex = startIndex;
 
+    this.logToTerminal(`[OMFD-H-DBG] Starting main loop. Initial currentIndex: ${currentIndex}`);
     while (displayCounter < this.config.maxHourliesToShow) {
+        this.logToTerminal(`[OMFD-H-DBG] Loop ${displayCounter}: Check if item is null.`);
         if (hoursData[currentIndex] == null) break;
 
+        this.logToTerminal(`[OMFD-H-DBG] Loop ${displayCounter}: Pushing item and calling factory.`);
         hourlies.push(this.hourlyForecastItemFactory(hoursData[currentIndex], rawDaily));
 
         currentIndex += this.config.hourlyForecastInterval;
         displayCounter++;
     }
-	this.logToTerminal(`[OMFD-PROCESS] Hourly forecast array built. Count: ${hourlies.length}`);
+    this.logToTerminal(`[OMFD-PROCESS] Hourly forecast array built. Count: ${hourlies.length}`);
     
     // ------------------ Current Conditions Processing ------------------
     const rawCurrent = this.weatherData.current;
