@@ -239,89 +239,129 @@ Module.register("MMM-OpenMeteoForecastDeluxe", {
         this.logToTerminal(`[OMFD-SOCKET] END socketNotificationReceived: ${notification}`);
     },
 
-    /*
-      This is the core function for processing Open-Meteo's parallel arrays and calculating bar properties.
-    */
-    processWeatherData: function() {
-        this.logToTerminal("[OMFD-PROCESS] START processWeatherData.");
-        
-        const rawDaily = this.weatherData.daily;
-        const rawHourly = this.weatherData.hourly;
-        const currentHour = moment().hour();
-        
-        if (!rawDaily || !rawHourly) {
-			return null;
-		}
-        
-		const hoursData = this.transposeDataMatrix(rawHourly);
+/*
+  This is the core function for processing Open-Meteo's parallel arrays and calculating bar properties.
+*/
+processWeatherData: function() {
+    this.logToTerminal("[OMFD-PROCESS] START processWeatherData.");
+    
+    const rawDaily = this.weatherData.daily;
+    const rawHourly = this.weatherData.hourly;
+    const currentHour = moment().hour();
+    
+    if (!rawDaily || !rawHourly) {
+        return null;
+    }
+    const hoursData = this.transposeDataMatrix(rawHourly);
 
-        // ------------------ Daily Forecast Processing ------------------
-        var dailies = [];
-        var minTempGlobal = Number.MAX_VALUE;
-        var maxTempGlobal = -Number.MAX_VALUE;
+    // ------------------ Daily Forecast Processing ------------------
+    var dailies = [];
+    var minTempGlobal = Number.MAX_VALUE;
+    var maxTempGlobal = -Number.MAX_VALUE;
 
+    // 1. Find the Absolute Min/Max Temperature over the entire forecast range
+    if (rawDaily.time.length === 0) {
+        return null;
+    }
 
-        // 1. Find the Absolute Min/Max Temperature over the entire forecast range
-        if (rawDaily.time.length === 0) {
-			return null;
-		}
-	
-		for (let i = 0; i < rawDaily.time.length; i++) {
-            // Read temperature values, ensuring they are numbers (defaulting to a safe range if needed)
-            const minTemp = this.getTemp(rawDaily.temperature_2m_min[i], "C");
-            const maxTemp = this.getTemp(rawDaily.temperature_2m_max[i], "C");
+    for (let i = 0; i < rawDaily.time.length; i++) {
+        // Read temperature values, ensuring they are numbers (defaulting to a safe range if needed)
+        const minTemp = this.getTemp(rawDaily.temperature_2m_min[i], "C");
+        const maxTemp = this.getTemp(rawDaily.temperature_2m_max[i], "C");
 
-            // Safety Check: Only update global min/max if the fetched temperature is a valid number
-            if (typeof minTemp === 'number' && !isNaN(minTemp)) {
-                minTempGlobal = Math.min(minTempGlobal, minTemp);
-            } 
-            if (typeof maxTemp === 'number' && !isNaN(maxTemp)) {
-                maxTempGlobal = Math.max(maxTempGlobal, maxTemp);
-            } 
-
+        // Safety Check: Only update global min/max if the fetched temperature is a valid number
+        if (typeof minTemp === 'number' && !isNaN(minTemp)) {
+            minTempGlobal = Math.min(minTempGlobal, minTemp);
         }
-       
-        // 2. Build the daily forecast objects
-        for (let i = 0; i < Math.min(rawDaily.time.length, this.config.maxDailiesToShow); i++) {
-            
-            // Skip today if configured to ignore
-            if (i === 0 && this.config.ignoreToday) {
-                continue;
-            }
-            let dailyItem = this.dailyForecastItemFactory(rawDaily, i, minTempGlobal, maxTempGlobal); // CRASH IS HERE
-            dailies.push(dailyItem);
-
-            this.logToTerminal(`[OMFD-PROCESS] END dailyForecastItemFactory for index: ${i}`);
+        if (typeof maxTemp === 'number' && !isNaN(maxTemp)) {
+            maxTempGlobal = Math.max(maxTempGlobal, maxTemp);
         }
-        this.logToTerminal("[OMFD-PROCESS] Daily forecast array created. Starting hourly/current processing.");
+    }
+   
+    // 2. Build the daily forecast objects
+    for (let i = 0; i < Math.min(rawDaily.time.length, this.config.maxDailiesToShow); i++) {
+        
+        // Skip today if configured to ignore
+        if (i === 0 && this.config.ignoreToday) {
+            continue;
+        }
+        let dailyItem = this.dailyForecastItemFactory(rawDaily, i, minTempGlobal, maxTempGlobal); 
+        dailies.push(dailyItem);
+    }
 
-        // ... (Hourly and Current Conditions processing blocks)
-		// ------------------ DIAGNOSTIC LOGGING OF FINAL OBJECT ------------------
-        const finalDataObject = {
-            "currently": { /* ... */ },
-            "summary": "Powered by Open-Meteo",
-            "hourly": hourlies,
-            "daily": dailies,
-        };
-        
-        // CRITICAL DIAGNOSTIC STEP: Log the structure of the object passed to Nunjucks
-        this.logToTerminal(`[OMFD-PROCESS] FINAL DATA OBJECT READY.`);
-        
-        // Log a stringified version of the final data object for inspection
-        this.logToTerminal(`[OMFD-PROCESS] FINAL PAYLOAD: ${JSON.stringify(finalDataObject)}`);
-		
-        this.logToTerminal("[OMFD-PROCESS] All processing finished. Building return object.");
-\
-        return {
-            "currently": {
-                temperature: this.getUnit('temp', this.getTemp(rawCurrent.temperature_2m, "C")),
-                // ... (rest of current conditions)
-            },
-            "summary": "Powered by Open-Meteo",
-            "hourly": hourlies,
-            "daily": dailies,
-        };
-    },
+    // ------------------ Hourly Forecast Processing ------------------
+    var hourlies = [];        
+    var displayCounter = 0;
+    var currentIndex = 0; 
+    
+    // Find the index of the current hour (to start from now + interval)
+    // Since Open-Meteo gives hourly data, we find the first hour *after* now 
+    const nowUnix = moment().unix();
+    let startIndex = hoursData.findIndex(h => moment.unix(h.time).unix() > nowUnix);
+
+    // Adjust to the next interval if needed
+    while (startIndex > 0 && (startIndex % this.config.hourlyForecastInterval) !== 0) {
+        startIndex++;
+    }
+    
+    if (startIndex === -1) startIndex = 0; // Fallback if no future hour found
+
+    currentIndex = startIndex;
+
+    while (displayCounter < this.config.maxHourliesToShow) {
+        if (hoursData[currentIndex] == null) break;
+
+        hourlies.push(this.hourlyForecastItemFactory(hoursData[currentIndex], rawDaily));
+
+        currentIndex += this.config.hourlyForecastInterval;
+        displayCounter++;
+    }
+    
+    // ------------------ Current Conditions Processing ------------------
+    const rawCurrent = this.weatherData.current;
+
+    // Use the hourly data point closest to the current time for current conditions
+    const currentHourIndex = rawHourly.time.findIndex(t => moment.unix(t).hour() === currentHour);
+    const hourlyCurrentData = hoursData[currentHourIndex] || hoursData[0]; 
+    
+    // Use the first day of the daily forecast for today's high/low
+    const todayDaily = this.dailyForecastItemFactory(rawDaily, 0, minTempGlobal, maxTempGlobal);
+
+    // --- FINAL OBJECT CONSTRUCTION & DIAGNOSTIC LOGGING ---
+
+    const finalDataObject = {
+        "currently": {
+            temperature: this.getUnit('temp', this.getTemp(rawCurrent.temperature_2m, "C")),
+            feelslike: this.getUnit('temp', this.getTemp(rawCurrent.apparent_temperature, "C")),
+            animatedIconId: this.config.useAnimatedIcons ? this.getAnimatedIconId() : null,
+            animatedIconName: this.convertWeatherCodeToIcon(rawCurrent.weathercode, moment().isBetween(todayDaily.sunrise, todayDaily.sunset)),
+            iconPath: this.generateIconSrc(this.convertWeatherCodeToIcon(rawCurrent.weathercode, moment().isBetween(todayDaily.sunrise, todayDaily.sunset)), true),
+            tempRange: todayDaily.tempRange,
+            precipitation: this.formatPrecipitation(hourlyCurrentData.precipitation_probability, hourlyCurrentData.precipitation, null),
+            wind: this.formatWind(
+                this.convertWindSpeed(rawCurrent.windspeed_10m, "ms"), 
+                rawCurrent.winddirection_10m, 
+                rawCurrent.windgusts_10m
+            ),
+            sunrise: todayDaily.sunrise,
+            sunset: todayDaily.sunset,
+        },
+        "summary": "Powered by Open-Meteo",
+        "hourly": hourlies,
+        "daily": dailies,
+    };
+    
+    // CRITICAL DIAGNOSTIC STEP: Log the structure of the object passed to Nunjucks
+    this.logToTerminal(`[OMFD-PROCESS] FINAL DATA OBJECT READY.`);
+    this.logToTerminal(`[OMFD-PROCESS] FINAL PAYLOAD (Hourly Count: ${hourlies.length}, Daily Count: ${dailies.length}):`);
+    this.logToTerminal(`${JSON.stringify(finalDataObject)}`);
+    
+    // -------------------------------------------------------------------
+
+    this.logToTerminal("[OMFD-PROCESS] All processing finished. Building return object.");
+    
+    return finalDataObject;
+},
     
     // Convert Open-Meteo's parallel arrays into an array of objects for easier iteration
     transposeDataMatrix: function(data) {
